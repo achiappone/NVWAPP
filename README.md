@@ -1,46 +1,18 @@
-APP is a React Native and Expo application built using Expo Router and TypeScript. It provides a modular, scalable architecture for building utility tools, preview interfaces, configuration screens, and repository management inside a unified mobile experience.
+APP is a mobile and web application built with React Native, Expo, and Expo Router. The goal of the project is to provide a clean, modular foundation for building tools, previews, settings panels, and various interactive screens inside one unified experience.
 
 FEATURES
 
-Expo Router navigation
+Simple and intuitive navigation powered by Expo Router
 
-Dynamic Preview screen with conditional UI elements
+Clean, modular components
 
-Component-driven architecture
+Preview screen with context-aware actions
 
-TypeScript-first codebase
+Fully typed codebase using TypeScript
 
-Works on iOS, Android, and Web
+Runs on iOS, Android, and Web
 
-Git-friendly structure
-
-PROJECT STRUCTURE
-
-app/
-(pages)/
-home.tsx
-preview.tsx
-settings.tsx
-cables.tsx
-control.tsx
-repository.tsx
-_layout.tsx
-index.tsx
-
-components/
-Header.tsx
-ui/
-
-assets/
-icons/
-images/
-fonts/
-
-package.json
-tsconfig.json
-README.md
-
-INSTALLATION AND SETUP
+GETTING STARTED
 
 Clone the repository
 git clone https://github.com/
@@ -50,43 +22,31 @@ cd <your-repo>
 Install dependencies
 npm install
 
-Start development
+Start the development environment
 npx expo start
 
 RUNNING THE APP
-
 Android: npx expo run:android
 iOS: npx expo run:ios
 Web: npx expo start --web
 
+PROJECT LAYOUT (Simplified)
+app/ → Screens and navigation
+components/ → Reusable UI
+assets/ → Images, icons, fonts
+
 SCRIPTS
-
-npm start Start Expo
-npm run gitpush Auto-commit and push to GitHub
-npm run build Build for production
-
-NAVIGATION (EXPO ROUTER)
-
-The app uses Expo Router. Each file inside the app directory becomes a route automatically.
-
-Examples:
-app/(pages)/preview.tsx → /preview
-app/settings.tsx → /settings
-app/index.tsx → /
-
-COMPONENTS
-
-Header.tsx and UI components are located in the components folder.
+npm start → Start Expo
+npm run gitpush → Commit + push changes
+npm run build → Production build
 
 GIT WORKFLOW
+git add .
+git commit -m "message"
+git push
 
-Add changes: git add .
-Commit: git commit -m "message"
-Push: git push
-
-PRODUCTION BUILD
-
-Classic Expo build:
+BUILDING FOR PRODUCTION
+Classic build:
 npx expo prebuild
 npx expo run:android
 npx expo run:ios
