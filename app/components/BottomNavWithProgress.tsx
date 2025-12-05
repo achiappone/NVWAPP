@@ -1,91 +1,117 @@
-import { router } from 'expo-router';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import * as Progress from 'react-native-progress';
+import { router, usePathname } from "expo-router";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import * as Progress from "react-native-progress";
 
-// Import your SVG icons
 import {
-    BackIcon,
-    EditIcon,
-    ExportIcon,
-    HomeIcon,
-    NextIcon
-} from '../../assets/icons/svgIcons';
+  BackIcon,
+  EditIcon,
+  ExportIcon,
+  HomeIcon,
+  NextIcon
+} from "../../assets/icons/svgIcons";
 
-interface Props {
-  onPressBack?: () => void;
-  onPressNext?: () => void;
-  onPressHome?: () => void;
-  onPressExport?: () => void;
-  onPressEdit?: () => void;
-  progress?: number;     // 0–1
-}
+//
+// ✔ Update this if your home is not /home
+//
+const workflow = [
+  "/home",
+  "/hardware",
+  "/control",
+  "/cables",
+  "/preview"
+];
 
-const BottomNavWithProgress: React.FC<Props> = ({
-  onPressBack,
-  onPressNext,
-  onPressHome,
-  onPressExport,
-  onPressEdit,
-  progress
-}) => {
+const BottomNavWithProgress = () => {
+  const pathname = usePathname();
+
+  // Find current step inside workflow
+  const currentIndex = workflow.indexOf(pathname);
+
+  // Safety: if user is on a non-workflow page (like Repository), hide the bar
+  if (currentIndex === -1) {
+    return null;
+  }
+
+  const isHome = currentIndex === 0;
+  const isLast = currentIndex === workflow.length - 1;
+  const isPreview = pathname === "/preview";
+
+  // Auto progress value based on step
+  const progress = currentIndex / (workflow.length - 1);
+
+  const handleNext = () => {
+    if (!isLast) {
+      router.push(workflow[currentIndex + 1] as any);
+    }
+  };
+
+  const handleBack = () => {
+    if (!isHome) {
+      router.push(workflow[currentIndex - 1] as any);
+    }
+  };
+
+  const handleHome = () => router.push("/home");
+
   return (
     <View style={styles.wrapper}>
-      {/* Navigation Row */}
+      
       <View style={styles.navContainer}>
-        {onPressBack && (
-          <TouchableOpacity onPress={onPressBack} style={styles.navButton}>
+
+        {/* BACK (hidden on home) */}
+        {!isHome && (
+          <TouchableOpacity onPress={handleBack} style={styles.navButton}>
             <BackIcon />
             <Text style={styles.label}>Back</Text>
           </TouchableOpacity>
         )}
 
-        {onPressHome && (
-          <TouchableOpacity
-            onPress={() => router.push('/home')}
-            style={styles.navButton}
-          >
-            <HomeIcon />
-            <Text style={styles.label}>Home</Text>
-          </TouchableOpacity>
-        )}
+        {/* HOME */}
+        <TouchableOpacity onPress={handleHome} style={styles.navButton}>
+          <HomeIcon />
+          <Text style={styles.label}>Home</Text>
+        </TouchableOpacity>
 
-        {onPressNext && (
-          <TouchableOpacity onPress={onPressNext} style={styles.navButton}>
+        {/* NEXT (hidden on preview / last screen) */}
+        {!isLast && !isPreview && (
+          <TouchableOpacity onPress={handleNext} style={styles.navButton}>
             <NextIcon />
             <Text style={styles.label}>Next</Text>
           </TouchableOpacity>
         )}
 
-        {onPressExport && (
-          <TouchableOpacity onPress={onPressExport} style={styles.navButton}>
+        {/* EXPORT (ONLY visible on preview) */}
+        {isPreview && (
+          <TouchableOpacity onPress={() => console.log("Export")} style={styles.navButton}>
             <ExportIcon />
             <Text style={styles.label}>Export</Text>
           </TouchableOpacity>
         )}
 
-        {onPressEdit && (
-          <TouchableOpacity onPress={onPressEdit} style={styles.navButton}>
+        {/* EDIT (ONLY visible on preview) */}
+        {isPreview && (
+          <TouchableOpacity onPress={() => console.log("Edit")} style={styles.navButton}>
             <EditIcon />
             <Text style={styles.label}>Edit</Text>
           </TouchableOpacity>
         )}
+
       </View>
 
-      {/* Progress Bar */}
-      {typeof progress === 'number' && (
-        <View style={styles.progressContainer}>
-          <Progress.Bar
-            progress={progress}
-            width={320}
-            height={6}
-            borderWidth={0}
-            color="#FFFFFF"
-            unfilledColor="#333"
-            borderRadius={5}
-          />
-        </View>
-      )}
+      {/* PROGRESS BAR */}
+      <View style={styles.progressContainer}>
+        <Progress.Bar
+          progress={progress}
+          width={320}
+          height={6}
+          borderWidth={0}
+          color="#FFFFFF"
+          unfilledColor="#333"
+          borderRadius={5}
+        />
+      </View>
+
     </View>
   );
 };
@@ -94,34 +120,30 @@ export default BottomNavWithProgress;
 
 const styles = StyleSheet.create({
   wrapper: {
-    backgroundColor: '#101010',
+    backgroundColor: "#101010",
     paddingBottom: 30,
     paddingTop: 10,
-    borderTopColor: '#222',
-    borderTopWidth: 1,
+    borderTopColor: "#222",
+    borderTopWidth: 1
   },
-
   navContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     paddingHorizontal: 10,
-    paddingBottom: 8,
+    paddingBottom: 8
   },
-
   navButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 60,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 60
   },
-
   label: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 12,
-    marginTop: 4,
+    marginTop: 4
   },
-
   progressContainer: {
     marginTop: 8,
-    alignItems: 'center',
+    alignItems: "center"
   }
 });

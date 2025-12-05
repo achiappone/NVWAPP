@@ -1,9 +1,14 @@
-import { Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
-export default function PreviewPage() {
+export default function preview() {
   return (
-    <View>
-      <Text>Preview Page</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Preview</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#000", padding: 20 },
+  title: { color: "#fff", fontSize: 28, marginBottom: 20 },
+});
