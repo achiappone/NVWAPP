@@ -15,6 +15,7 @@ import FullScreenModal from "../components/FullScreenModal";
 export default observer(function Hardware() {
   const [isWidthModalVisible, setWidthModalVisible] = useState(false);
   const [isHeightModalVisible, setHeightModalVisible] = useState(false);
+  const [isApplicationModalVisible, setApplicationModalVisible] = useState(false);
 
   // width list like pg2Hardware
   const widthOptions = [
@@ -33,10 +34,60 @@ export default observer(function Hardware() {
   // access hardware store values
   const { hardware } = useStore();
 
+  const applicationOptions = ["Rental", "Installation"] as const;
+
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Hardware Configuration</Text>
 
+      {/* Application Selection Button */}
+      <TouchableOpacity onPress={() => setApplicationModalVisible(true)}>
+        <View style={styles.button}>
+          <Text style={{ fontSize: 18 }}>
+            <Text style={{ color: "orange" }}>Application: </Text>
+            <Text style={{ color: "white" }}>
+              {hardware.application}
+            </Text>
+          </Text>
+          <ArrowIcon />
+        </View>
+      </TouchableOpacity>
+
+      {/* Application Selection Modal */}
+      <FullScreenModal
+        visible={isApplicationModalVisible}
+        onRequestClose={() => setApplicationModalVisible(false)}
+        title="Select Application:"
+        animationType={ModalAnimationType.Fade}
+      >
+        <ScrollView style={{ paddingHorizontal: 20 }}>
+          {applicationOptions.map((val) => {
+            return (
+              <TouchableOpacity
+                key={val}
+                onPress={() => {
+                  hardware.setApplication(val);
+                  setApplicationModalVisible(false);
+                }}
+              >
+                <View
+                  style={{
+                    paddingVertical: 12,
+                    borderBottomWidth: 1,
+                    borderBottomColor: "#333",
+                  }}
+                >
+                  <Text style={{ color: "white", fontSize: 18 }}>
+                    {val}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </FullScreenModal>
+      
       {/* Width Selection Button */}
       <TouchableOpacity onPress={() => setWidthModalVisible(true)}>
         <View style={styles.button}>
@@ -140,6 +191,7 @@ export default observer(function Hardware() {
           })}
         </ScrollView>
       </FullScreenModal>
+      
 
       
     </View>
