@@ -11,30 +11,53 @@ import {
 import { useStore } from "../../store/StoreProvider";
 import { ModalAnimationType } from "../../Types";
 import FullScreenModal from "../components/FullScreenModal";
+import LabeledValue from "../components/LabeledValue";
+import ModalOption from "../components/ModalOption";
 
 export default observer(function Hardware() {
+
+    // access hardware store values
+  const { hardware } = useStore();
+
   const [isWidthModalVisible, setWidthModalVisible] = useState(false);
   const [isHeightModalVisible, setHeightModalVisible] = useState(false);
+  const [isPixelPitchModalVisible, setPixelPitchModalVisible] = useState(false);
   const [isApplicationModalVisible, setApplicationModalVisible] = useState(false);
+  
+  console.log(
+  "Application: " + "\n",
+  "Pixel Pitch: " + hardware.pixelPitch + "\n",
+  "Width: " + hardware.width + "\n",
+  "Height: " + hardware.height + "\n"
+  );
 
-  // width list like pg2Hardware
+  // width list
   const widthOptions = [
     "0.0",
     ...Array.from({ length: 60 }, (_, i) => (0.5 * (i + 1)).toFixed(1)),
   ];
 
+    // height list
+  const heightOptions = [
+    "0.0",
+    ...Array.from({ length: 60 }, (_, i) => (0.5 * (i + 1)).toFixed(1)),
+  ];
+
   /** Convert meters → feet/inches */
+  const METERS_PER_INCH = 0.0254;
+
   const formatMetersToFeetInches = (meters: number) => {
-    const totalInches = meters * 39.3701;
+    const totalInches = meters / METERS_PER_INCH;
     const feet = Math.floor(totalInches / 12);
     const inches = Math.round(totalInches % 12);
     return `${meters} m (${feet}'${inches}")`;
   };
 
-  // access hardware store values
-  const { hardware } = useStore();
+
+
 
   const applicationOptions = ["Rental", "Installation"] as const;
+  const pixelPitchOptions = ["1.9", "2.6", "3.9",];
 
 
   return (
@@ -44,12 +67,10 @@ export default observer(function Hardware() {
       {/* Application Selection Button */}
       <TouchableOpacity onPress={() => setApplicationModalVisible(true)}>
         <View style={styles.button}>
-          <Text style={{ fontSize: 18 }}>
-            <Text style={{ color: "orange" }}>Application: </Text>
-            <Text style={{ color: "white" }}>
-              {hardware.application}
-            </Text>
-          </Text>
+          <LabeledValue
+            label="Application: "
+            value={hardware.application || "Select"}
+          />
           <ArrowIcon />
         </View>
       </TouchableOpacity>
@@ -61,42 +82,69 @@ export default observer(function Hardware() {
         title="Select Application:"
         animationType={ModalAnimationType.Fade}
       >
-        <ScrollView style={{ paddingHorizontal: 20 }}>
-          {applicationOptions.map((val) => {
-            return (
-              <TouchableOpacity
-                key={val}
-                onPress={() => {
-                  hardware.setApplication(val);
-                  setApplicationModalVisible(false);
-                }}
-              >
-                <View
-                  style={{
-                    paddingVertical: 12,
-                    borderBottomWidth: 1,
-                    borderBottomColor: "#333",
-                  }}
-                >
-                  <Text style={{ color: "white", fontSize: 18 }}>
-                    {val}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+        <ScrollView
+          contentContainerStyle={{
+            alignItems: "center",
+            width: "100%",
+          }}
+        >
+          {applicationOptions.map((val) =>(
+            <ModalOption
+              key={val}
+              label={val}
+              onPress={() => {
+                hardware.setApplication(val);
+                setApplicationModalVisible(false);
+              }}
+            />
+          ))}
+        </ScrollView>
+      </FullScreenModal>
+
+      {/* PixelPitch Selection Button */}
+      <TouchableOpacity onPress={() => setPixelPitchModalVisible(true)}>
+        <View style={styles.button}>
+          <LabeledValue
+            label="Pixel Pitch: "
+            value={hardware.pixelPitch ? `${hardware.pixelPitch} mm` : "Select"}
+          />
+          <ArrowIcon />
+        </View>
+      </TouchableOpacity>
+      
+      {/* PixelPitch Selection Modal */}
+      <FullScreenModal
+        visible={isPixelPitchModalVisible}
+        onRequestClose={() => setPixelPitchModalVisible(false)}
+        title="Select Pixel Pitch:"
+        animationType={ModalAnimationType.Fade}
+      >
+        <ScrollView
+          contentContainerStyle={{
+            alignItems: "center",
+            width: "100%",
+          }}
+        >
+          {pixelPitchOptions.map((val) =>(
+            <ModalOption
+              key={val}
+              label={`${val} mm`}
+              onPress={() => {
+                hardware.setPitch(Number(val));
+                setPixelPitchModalVisible(false);
+              }}
+            />
+          ))}
         </ScrollView>
       </FullScreenModal>
       
       {/* Width Selection Button */}
       <TouchableOpacity onPress={() => setWidthModalVisible(true)}>
         <View style={styles.button}>
-          <Text style={{ fontSize: 18 }}>
-            <Text style={{ color: "orange" }}>Select Width: </Text>
-            <Text style={{ color: "white" }}>
-              {formatMetersToFeetInches(hardware.width)}
-            </Text>
-          </Text>
+          <LabeledValue
+            label="Width: "
+            value={formatMetersToFeetInches(hardware.width)}
+          />
           <ArrowIcon />
         </View>
       </TouchableOpacity>
@@ -108,47 +156,32 @@ export default observer(function Hardware() {
         title="Select Width (meters):"
         animationType={ModalAnimationType.Fade}
       >
-        <ScrollView style={{ paddingHorizontal: 20 }}>
-          {widthOptions.map((val) => {
-            const numericVal = Number(val);
-            const totalInches = numericVal * 39.3701;
-            const feet = Math.floor(totalInches / 12);
-            const inches = Math.round(totalInches % 12);
-
-            return (
-              <TouchableOpacity
-                key={val}
-                onPress={() => {
-                  hardware.setWidth(numericVal); // <-- FIXED
-                  setWidthModalVisible(false);
-                }}
-              >
-                <View
-                  style={{
-                    paddingVertical: 12,
-                    borderBottomWidth: 1,
-                    borderBottomColor: "#333",
-                  }}
-                >
-                  <Text style={{ color: "white", fontSize: 18 }}>
-                    {`${val} m (${feet}'${inches}")`}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+        <ScrollView
+          contentContainerStyle={{
+            alignItems: "center",
+            width: "100%",
+          }}
+        >
+          {widthOptions.map((val) =>(
+            <ModalOption
+              key={val}
+              label={formatMetersToFeetInches(Number(val))}
+              onPress={() => {
+                hardware.setWidth(Number(val));
+                setWidthModalVisible(false);
+              }}
+            />
+          ))}
         </ScrollView>
       </FullScreenModal>
 
       {/* Height Selection Button */}
       <TouchableOpacity onPress={() => setHeightModalVisible(true)}>
         <View style={styles.button}>
-          <Text style={{ fontSize: 18 }}>
-            <Text style={{ color: "orange" }}>Select Height: </Text>
-            <Text style={{ color: "white" }}>
-              {formatMetersToFeetInches(hardware.height)}
-            </Text>
-          </Text>
+          <LabeledValue
+            label="Height: "
+            value={formatMetersToFeetInches(hardware.height)}
+          />
           <ArrowIcon />
         </View>
       </TouchableOpacity>
@@ -160,40 +193,24 @@ export default observer(function Hardware() {
         title="Select Height (meters):"
         animationType={ModalAnimationType.Fade}
       >
-        <ScrollView style={{ paddingHorizontal: 20 }}>
-          {widthOptions.map((val) => {
-            const numericVal = Number(val);
-            const totalInches = numericVal * 39.3701;
-            const feet = Math.floor(totalInches / 12);
-            const inches = Math.round(totalInches % 12);
-
-            return (
-              <TouchableOpacity
-                key={val}
-                onPress={() => {
-                  hardware.setHeight(numericVal); // <-- FIXED
-                  setHeightModalVisible(false);
-                }}
-              >
-                <View
-                  style={{
-                    paddingVertical: 12,
-                    borderBottomWidth: 1,
-                    borderBottomColor: "#333",
-                  }}
-                >
-                  <Text style={{ color: "white", fontSize: 18 }}>
-                    {`${val} m (${feet}'${inches}")`}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+        <ScrollView
+          contentContainerStyle={{
+            alignItems: "center",
+            width: "100%",
+          }}
+        >
+          {heightOptions.map((val) =>(
+            <ModalOption
+              key={val}
+              label={formatMetersToFeetInches(Number(val))}
+              onPress={() => {
+                hardware.setHeight(Number(val));
+                setHeightModalVisible(false);
+              }}
+            />
+          ))}
         </ScrollView>
       </FullScreenModal>
-      
-
-      
     </View>
   );
 });

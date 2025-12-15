@@ -5,6 +5,7 @@ export const HardwareStore = types
     width: types.optional(types.number, 0),
     height: types.optional(types.number, 0),
     application: types.optional(types.enumeration("Application", ["Rental", "Installation"]), "Rental"),
+    pixelPitch: types.optional(types.number, 0.0),
   })
   .actions((self) => ({
     setWidth(value: number) {
@@ -12,6 +13,9 @@ export const HardwareStore = types
     },
     setHeight(value: number) {
         self.height = value;
+    },
+    setPitch(value: number) {
+        self.pixelPitch = value;
     },
     setApplication(value: "Rental" | "Installation") {
         self.application = value;

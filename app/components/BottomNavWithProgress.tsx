@@ -11,9 +11,6 @@ import {
   NextIcon
 } from "../../assets/icons/svgIcons";
 
-//
-// ✔ Update this if your home is not /home
-//
 const workflow = [
   "/home",
   "/hardware",
@@ -24,11 +21,9 @@ const workflow = [
 
 const BottomNavWithProgress = () => {
   const pathname = usePathname();
-
-  // Find current step inside workflow
   const currentIndex = workflow.indexOf(pathname);
 
-  // Safety: if user is on a non-workflow page (like Repository), hide the bar
+  // Hide bar on non-workflow pages
   if (currentIndex === -1) {
     return null;
   }
@@ -37,7 +32,6 @@ const BottomNavWithProgress = () => {
   const isLast = currentIndex === workflow.length - 1;
   const isPreview = pathname === "/preview";
 
-  // Auto progress value based on step
   const progress = currentIndex / (workflow.length - 1);
 
   const handleNext = () => {
@@ -56,46 +50,61 @@ const BottomNavWithProgress = () => {
 
   return (
     <View style={styles.wrapper}>
-      
       <View style={styles.navContainer}>
 
-        {/* BACK (hidden on home) */}
-        {!isHome && (
-          <TouchableOpacity onPress={handleBack} style={styles.navButton}>
-            <BackIcon />
-            <Text style={styles.label}>Back</Text>
-          </TouchableOpacity>
-        )}
+        {/* SLOT 1 — BACK */}
+        <View style={styles.slot}>
+          {!isHome && (
+            <TouchableOpacity onPress={handleBack} style={styles.navButton}>
+              <BackIcon />
+              <Text style={styles.label}>Back</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
-        {/* HOME */}
-        <TouchableOpacity onPress={handleHome} style={styles.navButton}>
-          <HomeIcon />
-          <Text style={styles.label}>Home</Text>
-        </TouchableOpacity>
-
-        {/* NEXT (hidden on preview / last screen) */}
-        {!isLast && !isPreview && (
-          <TouchableOpacity onPress={handleNext} style={styles.navButton}>
-            <NextIcon />
-            <Text style={styles.label}>Next</Text>
+        {/* SLOT 2 — HOME (FIXED POSITION) */}
+        <View style={styles.slot}>
+          <TouchableOpacity onPress={handleHome} style={styles.navButton}>
+            <HomeIcon />
+            <Text style={styles.label}>Home</Text>
           </TouchableOpacity>
-        )}
+        </View>
 
-        {/* EXPORT (ONLY visible on preview) */}
-        {isPreview && (
-          <TouchableOpacity onPress={() => console.log("Export")} style={styles.navButton}>
-            <ExportIcon />
-            <Text style={styles.label}>Export</Text>
-          </TouchableOpacity>
-        )}
+        {/* SLOT 3 — NEXT */}
+        <View style={styles.slot}>
+          {!isLast && !isPreview && (
+            <TouchableOpacity onPress={handleNext} style={styles.navButton}>
+              <NextIcon />
+              <Text style={styles.label}>Next</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
-        {/* EDIT (ONLY visible on preview) */}
-        {isPreview && (
-          <TouchableOpacity onPress={() => console.log("Edit")} style={styles.navButton}>
-            <EditIcon />
-            <Text style={styles.label}>Edit</Text>
-          </TouchableOpacity>
-        )}
+        {/* SLOT 4 — EXPORT */}
+        <View style={styles.slot}>
+          {isPreview && (
+            <TouchableOpacity
+              onPress={() => console.log("Export")}
+              style={styles.navButton}
+            >
+              <ExportIcon />
+              <Text style={styles.label}>Export</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* SLOT 5 — EDIT */}
+        <View style={styles.slot}>
+          {isPreview && (
+            <TouchableOpacity
+              onPress={() => console.log("Edit")}
+              style={styles.navButton}
+            >
+              <EditIcon />
+              <Text style={styles.label}>Edit</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
       </View>
 
@@ -111,7 +120,6 @@ const BottomNavWithProgress = () => {
           borderRadius={5}
         />
       </View>
-
     </View>
   );
 };
@@ -121,16 +129,20 @@ export default BottomNavWithProgress;
 const styles = StyleSheet.create({
   wrapper: {
     backgroundColor: "#101010",
-    paddingBottom: 30,
     paddingTop: 10,
-    borderTopColor: "#222",
-    borderTopWidth: 1
+    paddingBottom: 30,
+    borderTopWidth: 1,
+    borderTopColor: "#222"
   },
   navContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
     paddingHorizontal: 10,
     paddingBottom: 8
+  },
+  slot: {
+    flex: 1,
+    alignItems: "center"
   },
   navButton: {
     alignItems: "center",
