@@ -2,15 +2,23 @@
 
 // app/preview.tsx
 import { observer } from "mobx-react-lite";
-import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
 import { useStore } from "../../store/StoreProvider";
 import { buildConfigExport } from "../../utils/buildConfigExport";
+
 
 const Preview = observer(() => {
   const rootStore = useStore();
 
   const exportData = buildConfigExport(rootStore);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+
 
   return (
     <ScrollView style={styles.container}>
@@ -22,6 +30,8 @@ const Preview = observer(() => {
         </Text>
       </View>
     </ScrollView>
+
+    
   );
 });
 

@@ -1,8 +1,15 @@
+// app/components/BottomNavWithProgress.tsx
 import { router, usePathname } from "expo-router";
-import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import {
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import * as Progress from "react-native-progress";
-
 import {
   BackIcon,
   EditIcon,
@@ -22,6 +29,8 @@ const workflow = [
 const BottomNavWithProgress = () => {
   const pathname = usePathname();
   const currentIndex = workflow.indexOf(pathname);
+  const [isEditModalVisible, setEditModalVisible] = useState(false);
+
 
   // Hide bar on non-workflow pages
   if (currentIndex === -1) {
@@ -49,6 +58,7 @@ const BottomNavWithProgress = () => {
   const handleHome = () => router.push("/home");
 
   return (
+    <>
     <View style={styles.wrapper}>
       <View style={styles.navContainer}>
 
@@ -97,7 +107,10 @@ const BottomNavWithProgress = () => {
         <View style={styles.slot}>
           {isPreview && (
             <TouchableOpacity
-              onPress={() => console.log("Edit")}
+              onPress={() => {
+                console.log("Edit")
+                setEditModalVisible(true);
+              }}
               style={styles.navButton}
             >
               <EditIcon />
@@ -121,6 +134,60 @@ const BottomNavWithProgress = () => {
         />
       </View>
     </View>
+
+    <Modal
+      transparent
+      animationType="fade"
+      visible={isEditModalVisible}
+      onRequestClose={() => setEditModalVisible(false)}
+    >
+      <View style={styles.overlay}>
+        <View style={styles.modalCard}>
+          <Text style={styles.title}>Edit Configuration</Text>
+
+          <Pressable
+            onPress={() => {
+              setEditModalVisible(false);
+              router.push("/hardware");
+            }}
+            style={({ pressed }) => [
+              styles.option,
+              pressed && styles.optionPressed,
+            ]}
+          >
+            <Text style={styles.optionText}>Screen / Hardware</Text>
+          </Pressable>
+
+          <TouchableOpacity
+            style={styles.option}
+            onPress={() => {
+              setEditModalVisible(false);
+              router.push("/control");
+            }}
+          >
+            <Text style={styles.optionText}>Control</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.option}
+            onPress={() => {
+              setEditModalVisible(false);
+              router.push("/cables");
+            }}
+          >
+            <Text style={styles.optionText}>Cables</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.cancel}
+            onPress={() => setEditModalVisible(false)}
+          >
+            <Text style={styles.cancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  </>
   );
 };
 
@@ -157,5 +224,49 @@ const styles = StyleSheet.create({
   progressContainer: {
     marginTop: 8,
     alignItems: "center"
-  }
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalCard: {
+    width: "85%",
+    backgroundColor: "#101010",
+    borderRadius: 12,
+    padding: 20,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#FF8C00",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  option: {
+    width: "100%",
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    backgroundColor: "#101010", // base
+    borderBottomWidth: 1,
+    borderBottomColor: "#333",
+},
+  optionText: {
+    fontSize: 15,
+    color: "#fff",
+    textAlign: "center",
+  },
+  cancel: {
+    marginTop: 16,
+    paddingVertical: 12,
+  },
+  cancelText: {
+    textAlign: "center",
+    color: "#FF8C00",
+  },
+  optionPressed: {
+  backgroundColor: "#1E1E1E",
+},
+
 });
