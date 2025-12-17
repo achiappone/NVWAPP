@@ -7,7 +7,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "gitpush": "git add . && git commit -m \"auto commit\" && git push"
+    "gitpush": "git add . && git commit -m \"auto commit\" && git push",
+    "save": "powershell -ExecutionPolicy Bypass -File ./git-save.ps1"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
