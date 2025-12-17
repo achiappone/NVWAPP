@@ -1,15 +1,20 @@
 import { getSnapshot } from "mobx-state-tree";
-import { RootStoreInstance } from "../store/RootStore";
+import { ProjectInstance } from "../store/models/ProjectModel";
 
-export function buildConfigExport(rootStore: RootStoreInstance) {
+export function buildConfigExport(project: ProjectInstance) {
+  const snapshot = getSnapshot(project);
+  
   return {
     meta: {
-      app: "NVW APP",
+      app: "New VW APP",
       version: "0.1",
       exportedAt: new Date().toISOString(),
+      projectId: project.id,
+      projectName: project.name,
     },
-    hardware: getSnapshot(rootStore.hardware),
-    control: getSnapshot(rootStore.control),
-    cables: getSnapshot(rootStore.cables),
+    project: {
+      ...snapshot,
+      createdAt: new Date(snapshot.createdAt).toISOString(),
+    },
   };
 }

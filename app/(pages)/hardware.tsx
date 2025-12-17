@@ -16,8 +16,15 @@ import ModalOption from "../components/ModalOption";
 
 export default observer(function Hardware() {
 
-    // access hardware store values
-  const { hardware } = useStore();
+  // access hardware store values
+  const store = useStore();
+  const project = store.activeProject;
+
+  if (!project) {
+    return null;
+  }
+
+  const { hardware } = project;
 
   const [isWidthModalVisible, setWidthModalVisible] = useState(false);
   const [isHeightModalVisible, setHeightModalVisible] = useState(false);

@@ -14,9 +14,14 @@ import { buildConfigExport } from "../../utils/buildConfigExport";
 
 
 const Preview = observer(() => {
-  const rootStore = useStore();
+  const store = useStore();
+  const project = store.activeProject;
 
-  const exportData = buildConfigExport(rootStore);
+  if (!project) {
+    return null;
+  }
+
+  const exportData = buildConfigExport(project);
   const [editModalVisible, setEditModalVisible] = useState(false);
 
 
@@ -57,6 +62,6 @@ const styles = StyleSheet.create({
   jsonText: {
     color: "#0f0",
     fontFamily: "Courier",
-    fontSize: 12,
+    fontSize: 16,
   },
 });

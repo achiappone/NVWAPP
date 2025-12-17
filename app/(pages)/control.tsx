@@ -14,7 +14,15 @@ import FullScreenModal from "../components/FullScreenModal";
 import ModalOption from "../components/ModalOption";
 
 export default observer(function Control() {
-  const { control } = useStore();
+   // access control store values
+    const store = useStore();
+    const project = store.activeProject;
+  
+    if (!project) {
+      return null;
+    }
+  
+    const { control } = project;
 
   console.log(
     "Control: " + "\n",

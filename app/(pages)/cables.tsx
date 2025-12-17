@@ -15,7 +15,15 @@ import LabeledValue from "../components/LabeledValue";
 import ModalOption from "../components/ModalOption";
 
 export default observer(function Cables() {
-  const { cables } = useStore();
+   // access cables store values
+    const store = useStore();
+    const project = store.activeProject;
+  
+    if (!project) {
+      return null;
+    }
+  
+    const { cables } = project;
 
   console.log(
     "Cables:" + "\n",
