@@ -1,5 +1,6 @@
-//app/components/FullScreenModal.tsx
-import React, { useEffect, useRef, useState } from 'react';
+// app/components/FullScreenModal.tsx
+import { modalTheme } from "@/theme/modalTheme";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -9,11 +10,13 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ModalAnimationType } from '../../Types';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ModalAnimationType } from "../../Types";
+
+console.log("FullScreenModal render");
+
 
 interface ModalAction {
   label: string;
@@ -41,30 +44,25 @@ const FullScreenModal: React.FC<CustomModalProps> = ({
   animationType,
   onShow = () => {},
 }) => {
-  const {top} = useSafeAreaInsets();
-  console.log('top inset', top);
-  const screenHeight = Dimensions.get('window').height;
+  const { top } = useSafeAreaInsets();
+  const screenHeight = Dimensions.get("window").height;
+  const screenWidth = Dimensions.get("window").width;
 
-  // Calculate modal height: 100% of the screen height minus the top inset
-  const screenWidth = Dimensions.get('window').width;
   const [contentHeight, setContentHeight] = useState(screenHeight - top);
   const opacityAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (Platform.OS === 'android' && disableTouchableWrapper) {
-      const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
+    if (Platform.OS === "android" && disableTouchableWrapper) {
+      const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
         const newHeight = screenHeight - e.endCoordinates.height - top;
 
-        // Perform the fade-out/fade-in sequence
         Animated.timing(opacityAnim, {
           toValue: 0,
           duration: 10,
           useNativeDriver: true,
         }).start(({ finished }) => {
-          // Check if the animation finished successfully.
           if (finished) {
             setContentHeight(newHeight);
-
             Animated.timing(opacityAnim, {
               toValue: 1,
               duration: 100,
@@ -74,190 +72,156 @@ const FullScreenModal: React.FC<CustomModalProps> = ({
         });
       });
 
-      const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-        // When keyboard hides, just reset the height.
+      const hideSub = Keyboard.addListener("keyboardDidHide", () => {
         setContentHeight(screenHeight - top);
         opacityAnim.setValue(1);
       });
 
       return () => {
-        keyboardDidShowListener.remove();
-        keyboardDidHideListener.remove();
+        showSub.remove();
+        hideSub.remove();
       };
     }
-  }, [screenHeight, top, opacityAnim]);
-
-
+  }, [screenHeight, top, opacityAnim, disableTouchableWrapper]);
 
   if (!visible) {
     return null;
   }
 
-  /**
-   * Note that in sone scenariousm the TouchableWithoutFeedback wrapper will cause the component to be non-scrollable.
-   */
-  if (disableTouchableWrapper) {
-    return (
-      <View style={StyleSheet.absoluteFill}>
+  const ModalBody = (
+    <View style={[styles.modalContainer, { height: contentHeight }]}>
+      <Animated.View
+        style={[
+          styles.modalContent,
+          { height: contentHeight, opacity: opacityAnim },
+        ]}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            onPress={() => {
+              console.log("Close pressed");
+              onRequestClose();
+            }}
+          >
+            <Text style={styles.cancelText}>Close</Text>
+          </TouchableOpacity>
 
+
+          <Text style={styles.title}>{title}</Text>
+
+          {action && (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={action.onRequestAction}
+            >
+              <Text style={styles.actionText}>{action.label}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Content */}
+        <View style={styles.content}>{children}</View>
+      </Animated.View>
+    </View>
+  );
+
+  return (
       <Modal
         animationType={animationType}
-        transparent={true}
-        statusBarTranslucent={true}
+        transparent
+        statusBarTranslucent
         visible={visible}
-        onShow={onShow}
         presentationStyle="overFullScreen"
-        style={{ margin: 0, bottom: 0, justifyContent: 'flex-end' }}
-        onRequestClose={onRequestClose}>
-        <View style={{width: screenWidth, flex: 1}}  collapsable={false}>
-          <View style={styles.modalOverlay}>
-            <TouchableOpacity style={styles.modalBackdrop} onPress={onRequestClose} />
-            <View style={[styles.modalContainer,{height: contentHeight}]}>
-              <Animated.View style={[styles.modalContent, {height: contentHeight, opacity: opacityAnim}]}>
-                <View style={styles.titleContainer}>
-                  <TouchableOpacity style={styles.cancelButton} onPress={onRequestClose}>
-                    <Text style={styles.cancelText}>Close</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.title}>{title}</Text>
-                  {action && (
-                    <View style={styles.actionButton}>
-                      <TouchableOpacity onPress={action.onRequestAction}>
-                        <Text
-                          style={{
-                            fontSize: 16,
-                            color: '#FFF',
-                            marginLeft: 10,
-                            marginRight: 10,
-                            marginTop: 5,
-                            marginBottom: 5,
-                          }}>
-                          {action.label}
-                        </Text>
-                        {/*<RecordSVG size={32} color={'darkorange'} />*/}
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-                {children}
-              </Animated.View>
-            </View>
-          </View>
+        onRequestClose={onRequestClose}
+        onShow={onShow}
+      >
+        <View style={[styles.modalOverlay, { width: screenWidth }]}>
+
+
+          {ModalBody}
         </View>
       </Modal>
-      </View>
-    );
-  } else {
-    return (
-      <View style={StyleSheet.absoluteFill}>
-
-      <Modal
-        animationType={animationType}
-        transparent={true}
-        statusBarTranslucent={true}
-        visible={visible}
-        presentationStyle="overFullScreen"
-        style={{ margin: 0, justifyContent: 'flex-end', height: contentHeight }}
-        onRequestClose={onRequestClose}>
-        <View style={{width: screenWidth, height: contentHeight, marginTop: 50} } collapsable={false}>
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={[styles.modalOverlay,{height: contentHeight}]}>
-              <TouchableOpacity style={styles.modalBackdrop} onPress={onRequestClose} />
-              <View style={[styles.modalContainer,{height: contentHeight}]}>
-                <Animated.View style={[styles.modalContent, {height: contentHeight, opacity: opacityAnim}]}>
-                  <View style={styles.titleContainer}>
-                    <TouchableOpacity style={styles.cancelButton} onPress={onRequestClose}>
-                      <Text style={styles.cancelText}>Close</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.title}>{title}</Text>
-                    {action && (
-                      <View style={styles.actionButton}>
-                        <TouchableOpacity onPress={action.onRequestAction}>
-                          <Text
-                            style={{
-                              fontSize: 16,
-                              color: '#FFF',
-                              marginLeft: 10,
-                              marginRight: 10,
-                              marginTop: 5,
-                              marginBottom: 5,
-                            }}>
-                            {action.label}
-                          </Text>
-                          {/*<RecordSVG size={32} color={'darkorange'} />*/}
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
-                  {children}
-                </Animated.View>
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
-          </View>
-      </Modal>
-      </View>
-    );
-  }
+  );
 };
 
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.6)",
+    pointerEvents: "auto",
   },
-  modalBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+
+  container: {
+  flex: 1,
+  backgroundColor: modalTheme.background,
+  paddingHorizontal: 20,
+
+  // ✅ THIS was missing
+  alignItems: "center",
   },
   modalContainer: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    width: "100%",
   },
   modalContent: {
-    width: '100%',
-    backgroundColor: '#1E1E2E',
-    borderRadius: 40,
-    alignItems: 'center',
+    width: "100%",
+    backgroundColor: "#000",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: "hidden",
+    pointerEvents: "auto",
+    position: "relative",
   },
-  titleContainer: {
-    display: 'flex',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 10,
-    borderTopStartRadius: 20,
-    borderTopEndRadius: 20,
-    padding: 20,
-    marginTop: 5,
-    backgroundColor: '#222244',
-  },
-  title: {
-    color: '#FFF',
-    fontSize: 24,
-  },
+
+/* Header */
+header: {
+  position: "relative",
+  zIndex: 1,
+  flexDirection: "row",
+  alignItems: "center",
+  paddingVertical: 16,
+  paddingHorizontal: 20,
+  borderBottomWidth: 1,
+  borderBottomColor: modalTheme.divider,
+  backgroundColor: "#19191a",
+},
+title: {
+  flex: 1,                 // ✅ CRITICAL
+  textAlign: "center",     // ✅ CRITICAL
+  color: modalTheme.titleColor,
+  fontSize: 22,
+  fontWeight: "600",
+},
   cancelButton: {
-    position: 'absolute',
+    position: "absolute",
     left: 20,
-  },
-  actionButton: {
-    position: 'absolute',
-    right: 20,
-    flexDirection: 'row',
-    borderRadius: 20,
-    backgroundColor: 'darkorange',
+    zIndex: 9999,
+    elevation: 9999,
   },
   cancelText: {
-    color: '#FFF',
+    color: "orange",
     fontSize: 16,
+  },
+  actionButton: {
+    position: "absolute",
+    right: 20,
+    backgroundColor: "orange",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  actionText: {
+    color: "#000",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  /* Content */
+  content: {
+    flex: 1,
   },
 });
 

@@ -1,3 +1,4 @@
+import { applySnapshot } from "mobx-state-tree";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { createRootStore } from "./RootStore";
 import { loadStoreSnapshot, persistStore } from "./persistance";
@@ -11,16 +12,34 @@ export const StoreProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     async function init() {
+      // 1️⃣ Create empty store
+      const rootStore = createRootStore();
+
+      // 2️⃣ Load snapshot
       const snapshot = await loadStoreSnapshot();
-      const rootStore = createRootStore(snapshot ?? undefined);
+
+      // 3️⃣ Apply snapshot (if it exists)
+      if (snapshot) {
+        try {
+          applySnapshot(rootStore, snapshot);
+        } catch (err) {
+          console.warn("Failed to apply store snapshot", err);
+        }
+      }
+
+      // 4️⃣ Ensure at least one project AFTER hydration
+      rootStore.ensureDefaultProject();
+
+      // 5️⃣ Start persistence AFTER hydration
       persistStore(rootStore);
+
       setStore(rootStore);
     }
 
     init();
   }, []);
 
-  if (!store) return null; // or a loading screen
+  if (!store) return null; // optional loading UI
 
   return (
     <StoreContext.Provider value={store}>
