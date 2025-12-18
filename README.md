@@ -54,3 +54,16 @@ npx expo run:ios
 EAS build:
 eas build --platform android
 eas build --platform ios
+
+High-level PDF Struture, using pdfmake:
+PDF
+├─ Cover Page (optional, later)
+├─ Screen / Hardware (Store: screen)
+├─ Control / Processing (Store: control)
+├─ Cabling / Infrastructure (Store: cables)
+├─ Drawings – Screen Layout (Grid view)
+├─ Drawings – Power Linking
+├─ Drawings – Signal Linking
+├─ Drawings – System Topology
+├─ Bill of Materials (BOM)
+└─ Footer (page numbers, export date)

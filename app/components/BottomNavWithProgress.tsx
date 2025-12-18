@@ -13,7 +13,6 @@ import * as Progress from "react-native-progress";
 import {
   BackIcon,
   EditIcon,
-  ExportIcon,
   HomeIcon,
   NextIcon
 } from "../../assets/icons/svgIcons";
@@ -30,7 +29,6 @@ const BottomNavWithProgress = () => {
   const pathname = usePathname();
   const currentIndex = workflow.indexOf(pathname);
   const [isEditModalVisible, setEditModalVisible] = useState(false);
-
 
   // Hide bar on non-workflow pages
   if (currentIndex === -1) {
@@ -90,20 +88,7 @@ const BottomNavWithProgress = () => {
           )}
         </View>
 
-        {/* SLOT 4 — EXPORT */}
-        <View style={styles.slot}>
-          {isPreview && (
-            <TouchableOpacity
-              onPress={() => console.log("Export")}
-              style={styles.navButton}
-            >
-              <ExportIcon />
-              <Text style={styles.label}>Export</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* SLOT 5 — EDIT */}
+        {/* SLOT 4 — EDIT */}
         <View style={styles.slot}>
           {isPreview && (
             <TouchableOpacity
