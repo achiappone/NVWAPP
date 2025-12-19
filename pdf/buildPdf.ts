@@ -1,10 +1,11 @@
 // pdf/buildPdf.ts
 import pdfMake from "pdfmake/build/pdfmake";
 import * as pdfFonts from "pdfmake/build/vfs_fonts";
-
+import { chauvetLogoBase64 } from "./assets/chauvetLogo";
 import { buildBomSection } from "./sections/bomSection";
 import { buildCablesSection } from "./sections/cablesSection";
 import { buildControlSection } from "./sections/controlSection";
+import { buildCoverSection } from "./sections/coverSection";
 import { buildScreenGrid } from "./sections/drawings/buildScreenGrid";
 import { buildPowerGrid } from "./sections/drawings/powerGrid";
 import { buildSignalGrid } from "./sections/drawings/signalGrid";
@@ -21,6 +22,7 @@ export function exportConfigPdf(exportData: {
     exportedAt: string;
     projectId: string;
     projectName: string;
+    notes?: string;
   };
   project: {
     application: string;
@@ -31,6 +33,7 @@ export function exportConfigPdf(exportData: {
       aspectRatio: string;
       panelsWide: number;
       panelsHigh: number;
+      wallLabel: string;
     };
     control: {
       processorModel: string;
@@ -90,6 +93,18 @@ if (!pdfInitialized) {
       margin: [0, 10, 0, 0],
     }),
     content: [
+      buildCoverSection({
+          projectName: exportData.meta.projectName,
+          wallLabel: exportData.project.hardware.wallLabel,
+          pixelPitch: exportData.project.hardware.pixelPitch,
+          widthMeters: exportData.project.hardware.width,
+          heightMeters: exportData.project.hardware.height,
+          aspectRatio: exportData.project.hardware.aspectRatio,
+          exportDate: exportData.meta.exportedAt,
+          logoBase64: chauvetLogoBase64,
+          notes: exportData.meta.notes,
+        }),
+      { text: "", pageBreak: "before" },
       ...buildScreenSection({
         pixelPitch: hardware.pixelPitch,
         widthMeters: hardware.width,
