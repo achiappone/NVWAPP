@@ -27,8 +27,17 @@ const Preview = observer(() => {
   // Build normalized export data
   const exportData = buildConfigExport(project);
 
-  // Pull hardware config from export data
-  const hardware = exportData.project.hardware;
+  
+
+  // Get first screen (single-screen for now)
+  const screen = exportData.project.screens[0];
+
+  if (!screen) {
+    return null;
+  }
+
+  const { hardware } = screen;
+
 
   const application = project.hardware.application;
   // Build physical grid definition from product rules

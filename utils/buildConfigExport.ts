@@ -6,6 +6,10 @@ import { ProjectInstance } from "../store/models/ProjectModel";
 export function buildConfigExport(project: ProjectInstance) {
   const snapshot = getSnapshot(project);
 
+  //temporary, until implemented elsewhere
+  const screenLabel = "Screen A";
+
+
   const hardware = snapshot.hardware;
   const control = snapshot.control;
   const cables = snapshot.cables;
@@ -40,11 +44,15 @@ export function buildConfigExport(project: ProjectInstance) {
       projectName: project.name,
     },
 
-    project: {
-      id: snapshot.id,
-      name: snapshot.name,
-      application: project.hardware.application,
-      createdAt: new Date(snapshot.createdAt).toISOString(),
+project: {
+  id: snapshot.id,
+  name: snapshot.name,
+  application: project.hardware.application,
+  createdAt: new Date(snapshot.createdAt).toISOString(),
+
+  screens: [
+    {
+      label: screenLabel,
 
       hardware: {
         pixelPitch: hardware.pixelPitch,
@@ -69,6 +77,9 @@ export function buildConfigExport(project: ProjectInstance) {
         signalLinking: cables.signalLinking,
       },
     },
+  ],
+},
+
   };
 }
 

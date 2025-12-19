@@ -26,29 +26,32 @@ export function exportConfigPdf(exportData: {
   };
   project: {
     application: string;
-    hardware: {
-      pixelPitch: number;
-      width: number;
-      height: number;
-      aspectRatio: string;
-      panelsWide: number;
-      panelsHigh: number;
-      wallLabel: string;
-    };
-    control: {
-      processorModel: string;
-      sourceResolution: string;
-      refreshRate: number;
-      bitDepth: number;
-      hdr: boolean;
-    };
-    cables: {
-      fiberRequired: boolean;
-      powerLinking: string;
-      signalLinking: string;
-    };
+    screens: {
+      label: string;
+      hardware: {
+        pixelPitch: number;
+        width: number;
+        height: number;
+        aspectRatio: string;
+        panelsWide: number;
+        panelsHigh: number;
+      };
+      control: {
+        processorModel: string;
+        sourceResolution: string;
+        refreshRate: number;
+        bitDepth: number;
+        hdr: boolean;
+      };
+      cables: {
+        fiberRequired: boolean;
+        powerLinking: string;
+        signalLinking: string;
+      };
+    }[];
   };
 }) {
+
 
   // ✅ SAFE lazy initialization (SSR-safe)
 // inside exportConfigPdf()
@@ -80,7 +83,8 @@ if (!pdfInitialized) {
   //temp log to check what is in pdfmake vfs
   console.log(Object.keys(pdfMake.vfs));
 
-  const { hardware, control, cables } = exportData.project;
+  const screen = exportData.project.screens[0];
+  const { hardware, control, cables } = screen;
 
   const docDefinition = {
     pageSize: "LETTER",
@@ -94,16 +98,14 @@ if (!pdfInitialized) {
     }),
     content: [
       buildCoverSection({
-          projectName: exportData.meta.projectName,
-          wallLabel: exportData.project.hardware.wallLabel,
-          pixelPitch: exportData.project.hardware.pixelPitch,
-          widthMeters: exportData.project.hardware.width,
-          heightMeters: exportData.project.hardware.height,
-          aspectRatio: exportData.project.hardware.aspectRatio,
-          exportDate: exportData.meta.exportedAt,
-          logoBase64: chauvetLogoBase64,
-          notes: exportData.meta.notes,
-        }),
+        projectName: exportData.meta.projectName,
+        screens: exportData.project.screens.map(s => ({
+          label: s.label,
+        })),
+        exportDate: exportData.meta.exportedAt,
+        logoBase64: chauvetLogoBase64,
+        notes: exportData.meta.notes,
+      }),
       { text: "", pageBreak: "before" },
       ...buildScreenSection({
         pixelPitch: hardware.pixelPitch,
@@ -120,7 +122,7 @@ if (!pdfInitialized) {
       { text: "", pageBreak: "before" },
 
       ...buildScreenGrid({
-        project: exportData.project,
+        screen,
         application: exportData.project.application,
       }),
       { text: "", pageBreak: "before" },

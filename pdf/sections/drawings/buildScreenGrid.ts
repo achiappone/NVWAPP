@@ -3,8 +3,11 @@
 import { buildInstallationGridFromHardware } from "../../utils/gridBuilder";
 import { buildScreenGridGeometry } from "../../utils/gridMath";
 
-export function buildScreenGrid(exportData: {
-  project: {
+export function buildScreenGrid({
+  screen,
+  application,
+}: {
+  screen: {
     hardware: {
       width: number;  // meters
       height: number; // meters
@@ -12,12 +15,12 @@ export function buildScreenGrid(exportData: {
   };
   application: string;
 }) {
-  const { hardware } = exportData.project;
+  const { hardware } = screen;
 
   const gridDef = buildInstallationGridFromHardware({
     width: hardware.width,
     height: hardware.height,
-    application: exportData.application,
+    application: application,
   });
 
   const geometry = buildScreenGridGeometry(gridDef);
