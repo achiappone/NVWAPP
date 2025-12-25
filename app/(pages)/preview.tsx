@@ -8,15 +8,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
 import { exportConfigPdf } from "../../pdf/buildPdf";
-import { useStore } from "../../store/StoreProvider";
-
-import { resolvePanelModel } from "@/utils/resolvePanelModel";
 import { buildInstallationGridFromHardware } from "../../pdf/utils/gridBuilder";
 import { buildScreenGridGeometry } from "../../pdf/utils/gridMath";
+import { useStore } from "../../store/StoreProvider";
 import { buildConfigExport } from "../../utils/buildConfigExport";
-
 
 const Preview = observer(() => {
   const store = useStore();
@@ -27,6 +23,7 @@ const Preview = observer(() => {
   }
 
   const exportData = buildConfigExport(project);
+  console.log(exportData.project.screens[0].cables);
 
 
   // Build normalized export data
@@ -34,16 +31,10 @@ const Preview = observer(() => {
     if (!hardware) {
       return null;
     }
-    //correlate model from pitch and application parameters selected
-    const modelName = resolvePanelModel({
-      application: hardware.application,
-      pixelPitch: hardware.pixelPitch,
-    });
-    console.log("Resolved panel model:", modelName);
       
   const application = hardware.application;
   // Build physical grid definition from product rules
-  console.log("Application:", application);
+  //console.log("Application:", application);
   
 const gridDef = buildInstallationGridFromHardware({
     width: hardware.width,
@@ -51,18 +42,30 @@ const gridDef = buildInstallationGridFromHardware({
     application,
   });
 
-  console.log(
-  "Preview hardware",
-  hardware.width,
-  typeof hardware.width,
-  hardware.height,
-  typeof hardware.height
+console.log(
+  "%cTest Log: \n%c" +
+    "Resolved model: " + exportData.meta.modelName + "\n" +
+    "Application: " + application + "\n" +
+    "Mains Volts: " + exportData.project.screens[0].cables.inputVoltage + " V\n" +
+    "Bit Depth: " + project.control.bitDepth + " bit" + "\n" +
+    "Max Watts/Panel: " + exportData.project.screens[0].hardware.maxWattsPerPanel + " W\n" +
+    "Pixel Pitch: " + hardware.pixelPitch + " mm\n" +
+    "Panels Wide: " + exportData.project.screens[0].hardware.panelsWide + " pc(s)" + "\n" +
+    "Panels High: " + exportData.project.screens[0].hardware.panelsHigh + " pc(s)" + "\n" +
+    "Total Cabinets: " +
+      (exportData.project.screens[0].hardware.panelsWide *
+       exportData.project.screens[0].hardware.panelsHigh) + " pc(s)",
+
+  // styles applied to %c
+  "font-weight: bold; font-size: 14px;",
+  "font-weight: normal;"
 );
+
 
 
   // Compute grid geometry
   const geometry = buildScreenGridGeometry(gridDef);
-  console.log("Cabinet count:", geometry.cabinets.length);
+  //console.log("Cabinet count:", geometry.cabinets.length);
 
   
 
@@ -95,6 +98,7 @@ const previewCabinets =
       powerType: "Power Type:",
       signalLinking: "Signal Linking:",
       homeRun: "Home Run:",
+      voltageInput: "Mains Voltage (V):",
     };
 
 

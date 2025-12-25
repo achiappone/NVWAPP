@@ -12,6 +12,14 @@ export const CablesStore = types
     fiberRequired: types.optional(types.boolean, false),  //expand later
     powerLinking: types.optional(types.string, "N/A"),  //expand later
     signalLinking: types.optional(types.string, "N/A"), //expand later
+    voltageInput: types.optional(
+      types.union(
+        types.literal(120),
+        types.literal(208),
+        types.literal(230)
+      ), 
+      120
+    ),
   })
 
   .actions((self) => ({
@@ -38,5 +46,9 @@ export const CablesStore = types
     },
     setSignalLinking(value: string) {
       self.signalLinking = value;
-    }
+    },
+    setVoltageInput(value: 120 | 208 | 230) {
+      if (value !== 120 && value !== 208 && value !== 230) return;
+      self.voltageInput = value;
+    },
   }));
