@@ -67,3 +67,9 @@ PDF
 ├─ Drawings – System Topology
 ├─ Bill of Materials (BOM)
 └─ Footer (page numbers, export date)
+
+pdf/
+  sections/        ← document sections (what shows up in the PDF)
+  utils/           ← math / helpers / builders
+  buildPdf.ts      ← orchestration
+  types.ts         ← shared types
