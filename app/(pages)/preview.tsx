@@ -12,6 +12,7 @@ import {
 import { exportConfigPdf } from "../../pdf/buildPdf";
 import { useStore } from "../../store/StoreProvider";
 
+import { resolvePanelModel } from "@/utils/resolvePanelModel";
 import { buildInstallationGridFromHardware } from "../../pdf/utils/gridBuilder";
 import { buildScreenGridGeometry } from "../../pdf/utils/gridMath";
 import { buildConfigExport } from "../../utils/buildConfigExport";
@@ -33,9 +34,13 @@ const Preview = observer(() => {
     if (!hardware) {
       return null;
     }
-
-
-
+    //correlate model from pitch and application parameters selected
+    const modelName = resolvePanelModel({
+      application: hardware.application,
+      pixelPitch: hardware.pixelPitch,
+    });
+    console.log("Resolved panel model:", modelName);
+      
   const application = hardware.application;
   // Build physical grid definition from product rules
   console.log("Application:", application);
@@ -71,6 +76,26 @@ const previewCabinets =
   geometry.cabinets.length > MAX_PREVIEW_CABINETS
     ? geometry.cabinets.slice(0, MAX_PREVIEW_CABINETS)
     : geometry.cabinets;
+
+    const LABELS: Record<string, string> = {
+      pixelPitch: "Pixel Pitch (mm):",
+      width: "Width (m):",
+      height: "Height (m):",
+      application: "Application:",
+      processorModel: "Processor:",
+      sourceResolution: "Source Resolution:",
+      refreshRate: "Refresh Rate (Hz):",
+      bitDepth: "Bit Depth (bit):",
+      hdr: "HDR:",
+      fiberRequired: "Fiber Required:",
+      powerLinking: "Power Linking:",
+      powerLength: "Power Length (m):",
+      signalLength: "Signal Length (m):",
+      signalType: "Signal Type:",
+      powerType: "Power Type:",
+      signalLinking: "Signal Linking:",
+      homeRun: "Home Run:",
+    };
 
 
   return (
@@ -113,11 +138,54 @@ const previewCabinets =
       </View>
       </ScrollView>
 
-      <View style={styles.jsonContainer}>
-        <Text style={styles.jsonText}>
-          {JSON.stringify(exportData, null, 2)}
-        </Text>
-      </View>
+        {/* Show preview using JSON */}
+      <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Project Info</Text>
+
+      {Object.entries(exportData.meta).map(([label, value]) => (
+        <View key={label} style={styles.row}>
+          <Text style={styles.label}>{LABELS[label] ?? label}</Text>
+          <Text style={styles.value}>{String(value)}</Text>
+        </View>
+      ))}
+    </View>
+
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Hardware</Text>
+
+      {Object.entries(hardware).map(([label, value]) => (
+        <View key={label} style={styles.row}>
+          <Text style={styles.label}>{LABELS[label] ?? label}</Text>
+          <Text style={styles.value}>{String(value)}</Text>
+        </View>
+      ))}
+    </View>
+
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Control</Text>
+
+      {Object.entries(project.control).map(
+        ([label, value]) => (
+        <View key={label} style={styles.row}>
+          <Text style={styles.label}>{LABELS[label] ?? label}</Text>
+          <Text style={styles.value}>{String(value)}</Text>
+        </View>
+      ))}
+    </View>
+
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Cables</Text>
+
+      {Object.entries(project.cables).map(
+        ([label, value]) => (
+        <View key={label} style={styles.row}>
+          <Text style={styles.label}>{LABELS[label] ?? label}</Text>
+          <Text style={styles.value}>{String(value)}</Text>
+        </View>
+      ))}
+    </View>
+
+
 
       <View style={styles.exportContainer}>
         <TouchableOpacity
@@ -189,4 +257,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  section: {
+    marginTop: 20,
+  },
+  sectionTitle: {
+    color: "#FF8C00",
+    fontSize: 18,
+    marginBottom: 8,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  label: {
+    width: 160,
+    color: "#aaa",
+    fontWeight: "600",
+  },
+  value: {
+    flex: 1,
+    color: "#fff",
+  },
+
 });

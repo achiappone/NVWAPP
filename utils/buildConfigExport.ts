@@ -2,13 +2,13 @@
 
 import { getSnapshot } from "mobx-state-tree";
 import { ProjectInstance } from "../store/models/ProjectModel";
+import { resolvePanelModel } from "./resolvePanelModel";
 
 export function buildConfigExport(project: ProjectInstance) {
   const snapshot = getSnapshot(project);
 
   //temporary, until implemented elsewhere
   const screenLabel = "Screen A";
-
 
   const hardware = snapshot.hardware;
   const control = snapshot.control;
@@ -35,13 +35,28 @@ export function buildConfigExport(project: ProjectInstance) {
       ? `${Math.round((widthMeters / heightMeters) * 100) / 100}:1`
       : "N/A";
 
+    //where the model listed comes from
+    const modelName = resolvePanelModel({
+      application: hardware.application,
+      pixelPitch: hardware.pixelPitch,
+    });
+
+    if (!modelName) {
+      console.warn(
+        "No model resolved for",
+        hardware.application,
+        hardware.pixelPitch
+      );
+    }
+
   return {
     meta: {
       app: "New VW APP",
       version: "0.1",
-      exportedAt: new Date().toISOString(),
       projectId: project.id,
+      exportedAt: new Date().toISOString(),
       projectName: project.name,
+      modelName: modelName,
     },
 
 project: {
@@ -58,9 +73,9 @@ project: {
         pixelPitch: hardware.pixelPitch,
         width: widthMeters,
         height: heightMeters,
-        aspectRatio,
-        panelsWide,
-        panelsHigh,
+        aspectRatio: aspectRatio,
+        panelsWide: panelsWide,
+        panelsHigh: panelsHigh,
       },
 
       control: {
