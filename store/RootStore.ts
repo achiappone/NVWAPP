@@ -77,6 +77,18 @@ export const RootStore = types
         self.activeProjectId = next ?? undefined;
       }
     },
+    replaceAllProjects(projectsSnapshot: Record<string, any>) {
+      self.projects.clear();
+
+      Object.entries(projectsSnapshot).forEach(([id, project]) => {
+        self.projects.set(id, project);
+      });
+
+      // Set active project to first imported project (or undefined)
+      const firstId = Object.keys(projectsSnapshot)[0];
+      self.activeProjectId = firstId ?? undefined;
+    },
+
   }));
 
 export type RootStoreInstance = Instance<typeof RootStore>;

@@ -1,11 +1,17 @@
 
 // app/%28pages%29/home.tsx
 
+import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system/legacy";
 import { useRouter } from "expo-router";
+import * as Sharing from "expo-sharing";
 import { observer } from "mobx-react-lite";
+import { getSnapshot } from "mobx-state-tree";
 import React, { useState } from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useStore } from "../../store/StoreProvider";
+
+
 
 const Home = observer(() => {
   
@@ -15,6 +21,103 @@ const Home = observer(() => {
   const [renameProjectId, setRenameProjectId] = useState<string | null>(null);
   const [projectNameDraft, setProjectNameDraft] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const exportAllProjects = async () => {
+  try {
+    const snapshot = getSnapshot(store);
+
+    const json = JSON.stringify(
+      {
+        exportedAt: new Date().toISOString(),
+        appVersion: "v1.0",
+        projects: snapshot.projects,
+      },
+      null,
+      2
+    );
+
+    // 🌐 WEB: download JSON
+    if (Platform.OS === "web") {
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "nvwapp-projects.json";
+      a.click();
+
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    // 📱 NATIVE: filesystem + share
+    const baseDir =
+      (FileSystem as any).documentDirectory ??
+      (FileSystem as any).cacheDirectory ??
+      "";
+
+    const fileUri = baseDir + "nvwapp-projects.json";
+
+    await FileSystem.writeAsStringAsync(fileUri, json, {
+      encoding: "utf8",
+    });
+
+    await Sharing.shareAsync(fileUri);
+  } catch (err) {
+    console.error("Export failed", err);
+  }
+};
+
+
+  const importProjects = async () => {
+  try {
+    // 🌐 WEB
+    if (Platform.OS === "web") {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "application/json";
+
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+
+        if (!parsed.projects) {
+          throw new Error("Invalid project file");
+        }
+
+        store.replaceAllProjects(parsed.projects);
+      };
+
+      input.click();
+      return;
+    }
+
+    // 📱 NATIVE
+    const result = await DocumentPicker.getDocumentAsync({
+      type: "application/json",
+      copyToCacheDirectory: true,
+    });
+
+    if (result.canceled) return;
+
+    const file = result.assets[0];
+    const text = await fetch(file.uri).then((r) => r.text());
+    const parsed = JSON.parse(text);
+
+    if (!parsed.projects) {
+      throw new Error("Invalid project file");
+    }
+
+    store.replaceAllProjects(parsed.projects);
+  } catch (err) {
+    console.error("Import failed", err);
+  }
+};
+
+
 
   return (
     <View style={styles.container}>
@@ -46,39 +149,73 @@ const Home = observer(() => {
         <Text style={styles.secondaryButtonText}>+ New Project</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={[styles.secondaryButton, { marginTop: 12 }]}
+        onPress={exportAllProjects}
+      >
+        <Text style={styles.secondaryButtonText}>
+          Export All Projects
+        </Text>
+      </TouchableOpacity>
+
+            <TouchableOpacity
+        style={[styles.secondaryButton, { marginTop: 12 }]}
+        onPress={importProjects}
+      >
+        <Text style={styles.secondaryButtonText}>
+          Import All Projects
+        </Text>
+      </TouchableOpacity>
+
       {/* Project List */}
       <View style={{ marginTop: 30 }}>
         <Text style={styles.sectionTitle}>Projects (press + hold to rename)</Text>
 
         {store.projectList.map((p) => (
-          <TouchableOpacity
-            key={p.id}
-            style={styles.projectRow}
-            onPress={() => {
-              store.setActiveProject(p.id);
-              router.push("/hardware");
-            }}
-            onLongPress={() => {
-              setRenameProjectId(p.id)
-              setProjectNameDraft(p.name);
-            }}
-          >
-            <Text style={styles.projectName}>{p.name}</Text>
-          </TouchableOpacity>
-        ))}
+  <View key={p.id} style={styles.projectRow}>
+    {/* Project name */}
+    <TouchableOpacity
+      style={styles.projectNameContainer}
+      onPress={() => {
+        store.setActiveProject(p.id);
+        router.push("/hardware");
+      }}
+      onLongPress={() => {
+        setRenameProjectId(p.id);
+        setProjectNameDraft(p.name);
+      }}
+    >
+      <Text style={styles.projectName}>{p.name}</Text>
+    </TouchableOpacity>
 
-        {renameProjectId && (
-  <View style={styles.renameOverlay}>
-    <View style={styles.renameModal}>
-      <Text style={styles.renameTitle}>Rename Project</Text>
+    {/* Actions */}
+    <View style={styles.projectActions}>
+      <TouchableOpacity
+        style={styles.reviewButton}
+        onPress={() => {
+          store.setActiveProject(p.id);
+          router.push("/preview");
+        }}
+      >
+        <Text style={styles.reviewButtonText}>Review</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+))}
 
-      <TextInput
-        value={projectNameDraft}
-        onChangeText={setProjectNameDraft}
-        placeholder="Project name"
-        placeholderTextColor="#666"
-        style={styles.renameInput}
-        autoFocus
+
+                {renameProjectId && (
+          <View style={styles.renameOverlay}>
+            <View style={styles.renameModal}>
+              <Text style={styles.renameTitle}>Rename Project</Text>
+
+              <TextInput
+                value={projectNameDraft}
+                onChangeText={setProjectNameDraft}
+                placeholder="Project name"
+                placeholderTextColor="#666"
+                style={styles.renameInput}
+                autoFocus
       />
 
       <View style={{ flexDirection: "row", gap: 10 }}>
@@ -209,10 +346,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 10,
 },
-  projectRow: {
-    paddingVertical: 12,
-    borderBottomColor: "#222",
-    borderBottomWidth: 1,
+  projectNameContainer: {
+    flex: 1,
+    paddingVertical: 6,
+  },
+  projectActions: {
+    marginLeft: 12,
   },
   projectName: {
     color: "#fff",
@@ -273,5 +412,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  reviewButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#ff7a00",
+    marginLeft: 10,
+    justifyContent: "center",
+  },
+  reviewButtonText: {
+    color: "#ff7a00",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  projectRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomColor: "#222",
+    borderBottomWidth: 1,
+  },
+
+
 
 });

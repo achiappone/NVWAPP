@@ -11,10 +11,11 @@ import {
 
 import { exportConfigPdf } from "../../pdf/buildPdf";
 import { useStore } from "../../store/StoreProvider";
-import { buildConfigExport } from "../../utils/buildConfigExport";
 
 import { buildInstallationGridFromHardware } from "../../pdf/utils/gridBuilder";
 import { buildScreenGridGeometry } from "../../pdf/utils/gridMath";
+import { buildConfigExport } from "../../utils/buildConfigExport";
+
 
 const Preview = observer(() => {
   const store = useStore();
@@ -24,34 +25,53 @@ const Preview = observer(() => {
     return null;
   }
 
-  // Build normalized export data
   const exportData = buildConfigExport(project);
 
-  
 
-  // Get first screen (single-screen for now)
-  const screen = exportData.project.screens[0];
-
-  if (!screen) {
-    return null;
-  }
-
-  const { hardware } = screen;
+  // Build normalized export data
+  const hardware = project.hardware;
+    if (!hardware) {
+      return null;
+    }
 
 
-  const application = project.hardware.application;
+
+  const application = hardware.application;
   // Build physical grid definition from product rules
-  const gridDef = buildInstallationGridFromHardware({
+  console.log("Application:", application);
+  
+const gridDef = buildInstallationGridFromHardware({
     width: hardware.width,
     height: hardware.height,
     application,
   });
 
+  console.log(
+  "Preview hardware",
+  hardware.width,
+  typeof hardware.width,
+  hardware.height,
+  typeof hardware.height
+);
+
+
   // Compute grid geometry
   const geometry = buildScreenGridGeometry(gridDef);
+  console.log("Cabinet count:", geometry.cabinets.length);
+
+  
 
   // Scale mm → screen pixels for preview
   const SCALE = 0.08;
+
+  // Limit preview rendering for performance
+const MAX_PREVIEW_CABINETS = 300;
+
+const previewCabinets =
+  geometry.cabinets.length > MAX_PREVIEW_CABINETS
+    ? geometry.cabinets.slice(0, MAX_PREVIEW_CABINETS)
+    : geometry.cabinets;
+
 
   return (
     <ScrollView style={styles.container}>
@@ -68,7 +88,7 @@ const Preview = observer(() => {
           },
         ]}
       >
-        {geometry.cabinets.map((cab) => (
+        {previewCabinets.map((cab) => (
           
           <View
             key={`${cab.row}-${cab.col}`}
