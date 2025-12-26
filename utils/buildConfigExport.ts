@@ -1,10 +1,12 @@
 // utils/buildConfigExport.ts
 
+import { ExportDocument } from "@/pdf/types";
+import { buildInstallationGridFromHardware } from "@/pdf/utils/gridBuilder";
 import { getSnapshot } from "mobx-state-tree";
 import { ProjectInstance } from "../store/models/ProjectModel";
 import { resolvePanelModel } from "./resolvePanelModel";
 
-export function buildConfigExport(project: ProjectInstance) {
+export function buildConfigExport(project: ProjectInstance): ExportDocument {
   const snapshot = getSnapshot(project);
 
   //temporary, until implemented elsewhere
@@ -14,40 +16,48 @@ export function buildConfigExport(project: ProjectInstance) {
   const control = snapshot.control;
   const cables = snapshot.cables;
 
+  
+  const panelSpec = resolvePanelModel({
+    application: hardware.application,
+    pixelPitch: hardware.pixelPitch,
+  });
+
+  if (!panelSpec) {
+    throw new Error(
+      `Panel model could not be resolved for ${hardware.application} @ ${hardware.pixelPitch}mm`
+    );
+  }
+
+  //console.log("Resolved panel spec:", panelSpec);
+
   const widthMeters = hardware.width ?? 0;
   const heightMeters = hardware.height ?? 0;
-
-  const panelWidthMeters = 1.0;   // 1000mm
-  const panelHeightMeters = 0.5;  // 500mm
-
-  const panelsWide =
-    panelWidthMeters > 0
-      ? Math.round(widthMeters / panelWidthMeters)
-      : 0;
-
-  const panelsHigh =
-    panelHeightMeters > 0
-      ? Math.round(heightMeters / panelHeightMeters)
-      : 0;
-
   const aspectRatio =
     heightMeters > 0
       ? `${Math.round((widthMeters / heightMeters) * 100) / 100}:1`
       : "N/A";
 
-    //where the model listed comes from
-    const modelName = resolvePanelModel({
-      application: hardware.application,
-      pixelPitch: hardware.pixelPitch,
-    });
+  const gridDef = buildInstallationGridFromHardware({
+    width: widthMeters,
+    height: heightMeters,
+    application: hardware.application,
+  });
 
-    if (!modelName) {
-      console.warn(
-        "No model resolved for",
-        hardware.application,
-        hardware.pixelPitch
-      );
-    }
+  // ✅ FALLBACK / GUARD
+  if (
+    gridDef.columnWidthsMm.length === 0 ||
+    gridDef.rowHeightsMm.length === 0
+  ) {
+    throw new Error(
+      `Invalid grid definition for ${hardware.application} ` +
+      `(${widthMeters}m x ${heightMeters}m)`
+    );
+  }
+
+  const panelsWide = gridDef.columnWidthsMm.length;
+  const panelsHigh = gridDef.rowHeightsMm.length;
+
+
 
   return {
     meta: {
@@ -56,7 +66,7 @@ export function buildConfigExport(project: ProjectInstance) {
       projectId: project.id,
       exportedAt: new Date().toISOString(),
       projectName: project.name,
-      modelName: modelName,
+      modelName: panelSpec.model,
     },
 
 project: {
@@ -71,11 +81,12 @@ project: {
 
       hardware: {
         pixelPitch: hardware.pixelPitch,
-        width: widthMeters,
-        height: heightMeters,
+        widthMeters: widthMeters,
+        heightMeters: heightMeters,
         aspectRatio: aspectRatio,
         panelsWide: panelsWide,
         panelsHigh: panelsHigh,
+        maxWattsPerPanel: panelSpec.maxWattsPerPanel,
       },
 
       control: {
@@ -90,7 +101,9 @@ project: {
         fiberRequired: cables.fiberRequired,
         powerLinking: cables.powerLinking,
         signalLinking: cables.signalLinking,
+        inputVoltage: cables.voltageInput,
       },
+
     },
   ],
 },

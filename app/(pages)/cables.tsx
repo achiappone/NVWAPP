@@ -31,7 +31,8 @@ export default observer(function Cables() {
     "Signal Length:" + cables.signalLength + "\n",
     "Power Type:" + cables.powerType + "\n",
     "Power Length:" + cables.powerLength + "\n",
-    "Home Run:" + cables.homeRun
+    "Home Run:" + cables.homeRun + "\n",
+    "Input Voltage:" + cables.voltageInput + "\n"
   );
 
   const [isSignalTypeVisible, setSignalTypeVisible] = useState(false);
@@ -39,6 +40,7 @@ export default observer(function Cables() {
   const [isPowerTypeVisible, setPowerTypeVisible] = useState(false);
   const [isPowerLengthVisible, setPowerLengthVisible] = useState(false);
   const [isHomeRunVisible, setHomeRunVisible] = useState(false);
+  const [isVoltageModalVisible, setVoltageModalVisible] = useState(false);
 
   const signalTypeOptions = ["Ethernet", "Fiber"];
   const powerTypeOptions = ["TRUE1", "BareEnd", "IEC"];
@@ -144,6 +146,55 @@ export default observer(function Cables() {
         </ScrollView>
       </FullScreenModal>
 
+      {/* Input Voltage */}
+      <TouchableOpacity onPress={() => setVoltageModalVisible(true)}>
+        <View style={styles.button}>
+          <Text style={styles.buttonText}>
+            <Text style={styles.label}>Mains Voltage: </Text>
+            {cables.voltageInput}
+          </Text>
+          <ArrowIcon />
+        </View>
+      </TouchableOpacity>
+
+      <FullScreenModal
+        visible={isVoltageModalVisible}
+        onRequestClose={() => setVoltageModalVisible(false)}
+        title="Select Mains Voltage:"
+        animationType={ModalAnimationType.Fade}
+      >
+        <ScrollView
+          contentContainerStyle={{
+            alignItems: "center",
+            width: "100%",
+          }}
+        >
+          <ModalOption
+            label="120 V"
+            onPress={() => {
+              cables.setVoltageInput(120);
+              setVoltageModalVisible(false);
+            }}
+          />
+
+          <ModalOption
+            label="208 V"
+            onPress={() => {
+              cables.setVoltageInput(208);
+              setVoltageModalVisible(false);
+            }}
+          />
+
+          <ModalOption
+            label="230 V"
+            onPress={() => {
+              cables.setVoltageInput(230);
+              setVoltageModalVisible(false);
+            }}
+          />
+        </ScrollView>
+      </FullScreenModal>
+      
       {/* Power Type */}
       <TouchableOpacity onPress={() => setPowerTypeVisible(true)}>
         <View style={styles.button}>

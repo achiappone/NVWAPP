@@ -40,14 +40,14 @@ export default observer(function Hardware() {
 
   // width list
   const widthOptions = [
-    "0.0",
-    ...Array.from({ length: 60 }, (_, i) => (0.5 * (i + 1)).toFixed(1)),
+    "0.5",
+    ...Array.from({ length: 60 }, (_, i) => (1.0 * (i + 1)).toFixed(1)),
   ];
 
     // height list
   const heightOptions = [
-    "0.0",
-    ...Array.from({ length: 60 }, (_, i) => (0.5 * (i + 1)).toFixed(1)),
+    "0.5",
+    ...Array.from({ length: 60 }, (_, i) => (1.0 * (i + 1)).toFixed(1)),
   ];
 
   /** Convert meters → feet/inches */

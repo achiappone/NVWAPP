@@ -127,3 +127,24 @@ export function getCabinetsInColumnMajorOrder(
     return a.row - b.row;
   });
 }
+
+export function buildPanelsPerPowerLineFromGrid(params: {
+  panelRows: number;
+  panelColumns: number;
+  rowsPerPowerLine: number;
+}): number[] {
+  const { panelRows, panelColumns, rowsPerPowerLine } = params;
+
+  const panelsPerLine: number[] = [];
+
+  for (let startRow = 0; startRow < panelRows; startRow += rowsPerPowerLine) {
+    const rowsInThisLine = Math.min(
+      rowsPerPowerLine,
+      panelRows - startRow
+    );
+
+    panelsPerLine.push(rowsInThisLine * panelColumns);
+  }
+
+  return panelsPerLine;
+}

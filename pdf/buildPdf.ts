@@ -2,7 +2,6 @@
 import pdfMake from "pdfmake/build/pdfmake";
 import * as pdfFonts from "pdfmake/build/vfs_fonts";
 import { buildBomSection } from "./sections/bomSection";
-import { buildCablesSection } from "./sections/cablesSection";
 import { buildControlSection } from "./sections/controlSection";
 import { buildCoverSection } from "./sections/coverSection";
 import { buildScreenGrid } from "./sections/drawings/buildScreenGrid";
@@ -10,60 +9,31 @@ import { buildPowerGrid } from "./sections/drawings/powerGrid";
 import { buildSignalGrid } from "./sections/drawings/signalGrid";
 import { buildSystemGrid } from "./sections/drawings/systemGrid";
 import { buildScreenSection } from "./sections/screenSection";
+import { buildCablesSection } from "./sections/signalCableSection";
 import { styles } from "./styles";
+import { ApplicationType, ExportDocument } from "./types";
+import { buildInstallationGridFromHardware } from "./utils/gridBuilder";
+import { buildPowerLines } from "./utils/powerModel";
 
 let pdfInitialized = false;
 
-export function exportConfigPdf(exportData: {
-  meta: {
-    app: string;
-    version: string;
-    exportedAt: string;
-    projectId: string;
-    projectName: string;
-    notes?: string;
-  };
-  project: {
-    application: string;
-    screens: {
-      label: string;
-      hardware: {
-        pixelPitch: number;
-        width: number;
-        height: number;
-        aspectRatio: string;
-        panelsWide: number;
-        panelsHigh: number;
-      };
-      control: {
-        processorModel: string;
-        sourceResolution: string;
-        refreshRate: number;
-        bitDepth: number;
-        hdr: boolean;
-      };
-      cables: {
-        fiberRequired: boolean;
-        powerLinking: string;
-        signalLinking: string;
-      };
-    }[];
-  };
-}) {
+export function exportConfigPdf(exportData: ExportDocument) {
+  // ─────────────────────────────────────────────
+  // PDF MAKE INIT (SSR SAFE)
+  // ─────────────────────────────────────────────
+  if (!pdfInitialized) {
+    const vfs =
+      (pdfFonts as any).pdfMake?.vfs ||
+      (pdfFonts as any).vfs ||
+      (pdfFonts as any);
 
+    if (!vfs) {
+      console.error("pdfMake fonts not available", pdfFonts);
+      return;
+    }
 
-  // ✅ SAFE lazy initialization (SSR-safe)
-// inside exportConfigPdf()
-if (!pdfInitialized) {
-  const vfs =
-    (pdfFonts as any).pdfMake?.vfs ||
-    (pdfFonts as any).vfs ||
-    (pdfFonts as any);
-
-  if (vfs) {
     pdfMake.vfs = vfs;
 
-    //define fonts to make bold italics respond in pdfmake
     pdfMake.fonts = {
       Roboto: {
         normal: "Roboto-Regular.ttf",
@@ -74,27 +44,68 @@ if (!pdfInitialized) {
     };
 
     pdfInitialized = true;
-  } else {
-    console.error("pdfMake fonts not available", pdfFonts);
-    return;
   }
-}
-  //temp log to check what is in pdfmake vfs
-  console.log(Object.keys(pdfMake.vfs));
 
+  // ─────────────────────────────────────────────
+  // DATA EXTRACTION
+  // ─────────────────────────────────────────────
   const screen = exportData.project.screens[0];
   const { hardware, control, cables } = screen;
 
+  const application = exportData.project.application
+    .trim()
+    .toLowerCase() as ApplicationType;
+
+  // ─────────────────────────────────────────────
+  // OPTIONAL POWER GRID SECTION
+  // ─────────────────────────────────────────────
+  const powerSection: any[] = [];
+
+  const totalPanels =
+    hardware.panelsWide * hardware.panelsHigh;
+
+  if (totalPanels <= 0) {
+    console.warn("No panels detected — skipping power grid");
+  } else {
+    const powerLines = buildPowerLines({
+      totalPanels,
+      panelMaxWatts: hardware.maxWattsPerPanel,
+      inputVoltage: cables.inputVoltage,
+      maxCircuitCurrent: 16,
+      safetyFactor: 0.8,
+    });
+
+    const gridDef = buildInstallationGridFromHardware({
+      width: hardware.widthMeters,
+      height: hardware.heightMeters,
+      application,
+    });
+
+    powerSection.push(
+      ...buildPowerGrid({
+        gridDef,
+        powerLines,
+        application,
+      }),
+      { text: "", pageBreak: "before" }
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // DOCUMENT DEFINITION
+  // ─────────────────────────────────────────────
   const docDefinition = {
     pageSize: "LETTER",
     pageMargins: [30, 60, 30, 60],
     styles,
+
     footer: (currentPage: number, pageCount: number) => ({
       text: `Page ${currentPage} of ${pageCount}`,
       alignment: "center",
       fontSize: 8,
       margin: [0, 10, 0, 0],
     }),
+
     content: [
       buildCoverSection({
         projectName: exportData.meta.projectName,
@@ -104,34 +115,46 @@ if (!pdfInitialized) {
         exportDate: exportData.meta.exportedAt,
         notes: exportData.meta.notes,
       }),
+
       { text: "", pageBreak: "before" },
+
       ...buildScreenSection({
         pixelPitch: hardware.pixelPitch,
-        widthMeters: hardware.width,
-        heightMeters: hardware.height,
+        widthMeters: hardware.widthMeters,
+        heightMeters: hardware.heightMeters,
         aspectRatio: hardware.aspectRatio,
       }),
+
       { text: "", pageBreak: "before" },
 
       ...buildControlSection(control),
+
       { text: "", pageBreak: "before" },
 
       ...buildCablesSection(cables),
+
       { text: "", pageBreak: "before" },
 
       ...buildScreenGrid({
-        screen,
-        application: exportData.project.application,
+        screen: {
+          hardware: {
+            width: hardware.widthMeters,
+            height: hardware.heightMeters,
+          },
+        },
+        application,
       }),
+
       { text: "", pageBreak: "before" },
 
-      ...buildPowerGrid({ hardware, control, cables }),
-      { text: "", pageBreak: "before" },
+      ...powerSection,
 
       ...buildSignalGrid({ hardware, control, cables }),
+
       { text: "", pageBreak: "before" },
 
       ...buildSystemGrid({ hardware, control, cables }),
+
       { text: "", pageBreak: "before" },
 
       ...buildBomSection(exportData),
