@@ -1,23 +1,50 @@
 // pdf/sections/drawings/powerGrid.ts
 
+import { ApplicationType } from "@/pdf/types";
+import { ScreenGridDefinition } from "../../utils/gridMath";
+import { mapPowerLinesToGrid } from "../../utils/powerGridMap";
 import { PowerLine } from "../../utils/powerModel";
 
+/**
+ * Capacity-based warning colors (used ONLY in summary row)
+ */
 function getCapacityFill(capacityPercent: number): string | undefined {
-  if (capacityPercent > 75) return "#EAEAEA";
-  if (capacityPercent > 50) return "#F5F5F5";
+  if (capacityPercent > 80) return "#F8D7DA"; // red-ish
+  if (capacityPercent > 60) return "#FFF3CD"; // yellow-ish
   return undefined;
 }
 
-export function buildPowerGrid(powerLines: PowerLine[]) {
+/**
+ * Fixed color palette for circuit grouping
+ * Each circuit (PWR-1, PWR-2, etc) gets ONE color consistently
+ */
+const CIRCUIT_COLORS = [
+  "#F5F5F5",
+  "#EAEAEA",
+  "#E8F4FD",
+  "#FFF3CD",
+  "#F3E8FF",
+  "#E6F4EA",
+];
+
+export function buildPowerGrid(params: {
+  gridDef: ScreenGridDefinition;
+  powerLines: PowerLine[];
+  application: ApplicationType;
+}) {
+  const { gridDef, powerLines, application } = params;
+
   if (!powerLines.length) return [];
 
-  // Build table rows (1 cell per power line)
-  const cells = powerLines.map(line => ({
+  // ─────────────────────────────────────────────
+  // POWER DISTRIBUTION SUMMARY
+  // ─────────────────────────────────────────────
+  const summaryCells = powerLines.map((line) => ({
     stack: [
       { text: line.lineId, bold: true, fontSize: 9 },
-      { text: `${line.voltage}V`, fontSize: 8 },
+      { text: `${line.voltage} V`, fontSize: 8 },
       {
-        text: `${line.current.toFixed(1)}A / ${line.maxCurrent}A`,
+        text: `${line.current.toFixed(1)} A / ${line.maxCurrent} A`,
         fontSize: 8,
       },
       {
@@ -26,10 +53,73 @@ export function buildPowerGrid(powerLines: PowerLine[]) {
       },
     ],
     alignment: "center",
-    margin: [2, 4, 2, 4],
+    margin: [4, 6, 4, 6],
     fillColor: getCapacityFill(line.capacityPercent),
   }));
 
+  // ─────────────────────────────────────────────
+  // MAP CIRCUITS → GRID
+  // ─────────────────────────────────────────────
+  const powerGrid = mapPowerLinesToGrid({
+    gridDef,
+    powerLines,
+  });
+
+  // ─────────────────────────────────────────────
+  // CIRCUIT → COLOR LOOKUP
+  // ─────────────────────────────────────────────
+  const circuitColorMap = new Map<string, string>();
+
+  powerLines.forEach((line, index) => {
+    circuitColorMap.set(
+      line.lineId,
+      CIRCUIT_COLORS[index % CIRCUIT_COLORS.length]
+    );
+  });
+
+  // ─────────────────────────────────────────────
+  // GRID SCALING (prevent overflow)
+  // ─────────────────────────────────────────────
+  const PAGE_WIDTH = 612; // LETTER
+  const MARGINS = 60;
+  const usableWidth = PAGE_WIDTH - MARGINS;
+
+  const colCount = gridDef.columnWidthsMm.length;
+  const colWidth = Math.floor(usableWidth / colCount);
+
+  // ─────────────────────────────────────────────
+  // GRID TABLE
+  // ─────────────────────────────────────────────
+  const gridTable = {
+    table: {
+      widths: Array(colCount).fill(colWidth),
+      body: powerGrid.map((row) =>
+        row.map((cell) => ({
+          stack: [
+            { text: cell.powerLineId, bold: true, fontSize: 8 },
+            { text: `#${cell.order}`, fontSize: 7 },
+          ],
+          alignment: "center",
+          margin: [0, 10, 0, 10],
+          fillColor: circuitColorMap.get(cell.powerLineId),
+        }))
+      ),
+    },
+    layout: {
+      hLineWidth: () => 0.5,
+      vLineWidth: () => 0.5,
+      hLineColor: () => "#999",
+      vLineColor: () => "#999",
+      paddingLeft: () => 6,
+      paddingRight: () => 6,
+      paddingTop: () => 6,
+      paddingBottom: () => 6,
+    },
+  };
+
+  // ─────────────────────────────────────────────
+  // FINAL CONTENT
+  // ─────────────────────────────────────────────
   return [
     {
       text: "Power Distribution",
@@ -38,10 +128,16 @@ export function buildPowerGrid(powerLines: PowerLine[]) {
     },
     {
       table: {
-        widths: Array(cells.length).fill("*"),
-        body: [cells],
+        widths: Array(summaryCells.length).fill("*"),
+        body: [summaryCells],
       },
       layout: "lightHorizontalLines",
     },
+    {
+      text: "Power Grid",
+      style: "sectionHeader",
+      margin: [0, 16, 0, 8],
+    },
+    gridTable,
   ];
 }

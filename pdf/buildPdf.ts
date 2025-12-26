@@ -12,77 +12,101 @@ import { buildSystemGrid } from "./sections/drawings/systemGrid";
 import { buildScreenSection } from "./sections/screenSection";
 import { buildCablesSection } from "./sections/signalCableSection";
 import { styles } from "./styles";
-import { ExportDocument } from "./types";
+import { ApplicationType, ExportDocument } from "./types";
+import { buildInstallationGridFromHardware } from "./utils/gridBuilder";
 import { buildPowerLines } from "./utils/powerModel";
 
 let pdfInitialized = false;
 
 export function exportConfigPdf(exportData: ExportDocument) {
-
-  // ✅ SAFE lazy initialization (SSR-safe)
-  // inside exportConfigPdf()
+  // ─────────────────────────────────────────────
+  // PDF MAKE INIT (SSR SAFE)
+  // ─────────────────────────────────────────────
   if (!pdfInitialized) {
     const vfs =
       (pdfFonts as any).pdfMake?.vfs ||
       (pdfFonts as any).vfs ||
       (pdfFonts as any);
 
-    if (vfs) {
-      pdfMake.vfs = vfs;
-
-      //define fonts to make bold italics respond in pdfmake
-      pdfMake.fonts = {
-        Roboto: {
-          normal: "Roboto-Regular.ttf",
-          bold: "Roboto-Medium.ttf",
-          italics: "Roboto-Italic.ttf",
-          bolditalics: "Roboto-MediumItalic.ttf",
-        },
-      };
-
-      pdfInitialized = true;
-    } else {
+    if (!vfs) {
       console.error("pdfMake fonts not available", pdfFonts);
       return;
     }
-  }
-  //temp log to check what is in pdfmake vfs
-  console.log(Object.keys(pdfMake.vfs));
 
+    pdfMake.vfs = vfs;
+
+    pdfMake.fonts = {
+      Roboto: {
+        normal: "Roboto-Regular.ttf",
+        bold: "Roboto-Medium.ttf",
+        italics: "Roboto-Italic.ttf",
+        bolditalics: "Roboto-MediumItalic.ttf",
+      },
+    };
+
+    pdfInitialized = true;
+  }
+
+  // ─────────────────────────────────────────────
+  // DATA EXTRACTION
+  // ─────────────────────────────────────────────
   const screen = exportData.project.screens[0];
   const { hardware, control, cables } = screen;
 
-  //power grid data
-  const ROWS_PER_POWER_LINE = 2;
-  const panelsPerLine: number[] = [];
-  for (let row = 0; row < hardware.panelsHigh; row += ROWS_PER_POWER_LINE) {
-    const rowsInThisLine = Math.min(
-      ROWS_PER_POWER_LINE,
-      hardware.panelsHigh - row
-    );
+  const application = exportData.project.application
+    .trim()
+    .toLowerCase() as ApplicationType;
 
-    panelsPerLine.push(rowsInThisLine * hardware.panelsWide);
+  // ─────────────────────────────────────────────
+  // OPTIONAL POWER GRID SECTION
+  // ─────────────────────────────────────────────
+  const powerSection: any[] = [];
+
+  const totalPanels =
+    hardware.panelsWide * hardware.panelsHigh;
+
+  if (totalPanels <= 0) {
+    console.warn("No panels detected — skipping power grid");
+  } else {
+    const powerLines = buildPowerLines({
+      totalPanels,
+      panelMaxWatts: hardware.maxWattsPerPanel,
+      inputVoltage: cables.inputVoltage,
+      maxCircuitCurrent: 16,
+      safetyFactor: 0.8,
+    });
+
+    const gridDef = buildInstallationGridFromHardware({
+      width: hardware.widthMeters,
+      height: hardware.heightMeters,
+      application,
+    });
+
+    powerSection.push(
+      ...buildPowerGrid({
+        gridDef,
+        powerLines,
+        application,
+      }),
+      { text: "", pageBreak: "before" }
+    );
   }
 
-  const powerLines = buildPowerLines({
-    panelsPerLine,
-    panelMaxWatts: hardware.maxWattsPerPanel, // 
-    inputVoltage: cables.inputVoltage,        // 
-  });
-
-    //console.log(powerLines);
-
-
+  // ─────────────────────────────────────────────
+  // DOCUMENT DEFINITION
+  // ─────────────────────────────────────────────
   const docDefinition = {
     pageSize: "LETTER",
     pageMargins: [30, 60, 30, 60],
     styles,
+
     footer: (currentPage: number, pageCount: number) => ({
       text: `Page ${currentPage} of ${pageCount}`,
       alignment: "center",
       fontSize: 8,
       margin: [0, 10, 0, 0],
     }),
+
     content: [
       buildCoverSection({
         projectName: exportData.meta.projectName,
@@ -93,19 +117,24 @@ export function exportConfigPdf(exportData: ExportDocument) {
         logoBase64: chauvetLogoBase64,
         notes: exportData.meta.notes,
       }),
+
       { text: "", pageBreak: "before" },
+
       ...buildScreenSection({
         pixelPitch: hardware.pixelPitch,
         widthMeters: hardware.widthMeters,
         heightMeters: hardware.heightMeters,
         aspectRatio: hardware.aspectRatio,
       }),
+
       { text: "", pageBreak: "before" },
 
       ...buildControlSection(control),
+
       { text: "", pageBreak: "before" },
 
       ...buildCablesSection(cables),
+
       { text: "", pageBreak: "before" },
 
       ...buildScreenGrid({
@@ -115,17 +144,19 @@ export function exportConfigPdf(exportData: ExportDocument) {
             height: hardware.heightMeters,
           },
         },
-        application: exportData.project.application,
+        application,
       }),
+
       { text: "", pageBreak: "before" },
 
-      ...buildPowerGrid(powerLines),
-      { text: "", pageBreak: "before" },
+      ...powerSection,
 
       ...buildSignalGrid({ hardware, control, cables }),
+
       { text: "", pageBreak: "before" },
 
       ...buildSystemGrid({ hardware, control, cables }),
+
       { text: "", pageBreak: "before" },
 
       ...buildBomSection(exportData),

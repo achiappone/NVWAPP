@@ -1,5 +1,7 @@
 // pdf/types.ts
 
+export type ApplicationType = "rental" | "installation";
+
 export type ScreenExportData = {
   pixelPitch: number;
   widthMeters: number;
