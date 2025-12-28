@@ -65,6 +65,14 @@ export function buildPowerGrid(params: {
     powerLines,
   });
 
+    //sanity check
+    if (
+    powerGrid.length !== gridDef.rowHeightsMm.length ||
+    powerGrid[0]?.length !== gridDef.columnWidthsMm.length
+    ) {
+      throw new Error("Power grid dimensions do not match screen grid definition");
+    }
+
   // ─────────────────────────────────────────────
   // CIRCUIT → COLOR LOOKUP
   // ─────────────────────────────────────────────
@@ -80,19 +88,15 @@ export function buildPowerGrid(params: {
   // ─────────────────────────────────────────────
   // GRID SCALING (prevent overflow)
   // ─────────────────────────────────────────────
-  const PAGE_WIDTH = 612; // LETTER
-  const MARGINS = 60;
-  const usableWidth = PAGE_WIDTH - MARGINS;
-
   const colCount = gridDef.columnWidthsMm.length;
-  const colWidth = Math.floor(usableWidth / colCount);
+
 
   // ─────────────────────────────────────────────
   // GRID TABLE
   // ─────────────────────────────────────────────
   const gridTable = {
     table: {
-      widths: Array(colCount).fill(colWidth),
+      widths: Array(colCount).fill("*"),
       body: powerGrid.map((row) =>
         row.map((cell) => ({
           stack: [

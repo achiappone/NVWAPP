@@ -44,14 +44,23 @@ export function mapPowerLinesToGrid({
     Array.from({ length: cols })
   );
 
-  // 1. Build linear cabinet traversal order
+  // 1. Build linear cabinet traversal order (SERPENTINE)
   const cabinetPositions: { row: number; col: number }[] = [];
 
   for (let c = 0; c < cols; c++) {
-    for (let r = 0; r < rows; r++) {
-      cabinetPositions.push({ row: r, col: c });
+    const goingDown = c % 2 === 0; // even column = top → bottom
+
+    if (goingDown) {
+      for (let r = 0; r < rows; r++) {
+        cabinetPositions.push({ row: r, col: c });
+      }
+    } else {
+      for (let r = rows - 1; r >= 0; r--) {
+        cabinetPositions.push({ row: r, col: c });
+      }
     }
   }
+
 
   // 2. Walk cabinets and assign circuits
   let cabinetIndex = 0;
