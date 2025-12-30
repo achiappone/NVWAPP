@@ -8,33 +8,50 @@ export type PowerLine = {
   voltage: number;
   totalWatts: number;
   current: number;
-  maxCurrent: number;
+
+  breakerCurrent: number;
+  usableCurrent: number;
+  usableWatts: number;
 
   capacityPercent: number; // 0 – 100 (based on usable amps)
 };
 
 const DEFAULT_MAX_CURRENT = 16;
-const DEFAULT_SAFETY_FACTOR = 0.8;
+const DEFAULT_SAFETY_FACTOR = 0.9;
 
 export function buildPowerLines(params: {
   totalPanels: number;              // <-- CHANGED: total cabinet count
   panelMaxWatts: number;
   inputVoltage: 120 | 208 | 230;
   maxCircuitCurrent?: number;       // breaker rating (e.g. 16A)
-  safetyFactor?: number;            // default 0.8
+  safetyFactor?: number;            // default 0.9 (90% derating continuous load)
+
 }): PowerLine[] {
   const {
     totalPanels,
     panelMaxWatts,
     inputVoltage,
     maxCircuitCurrent = DEFAULT_MAX_CURRENT,
-    safetyFactor = DEFAULT_SAFETY_FACTOR,
+    safetyFactor,
   } = params;
 
-  const usableAmps = maxCircuitCurrent * safetyFactor;
-  const usableWatts = usableAmps * inputVoltage;
+  const effectiveSafetyFactor =
+  safetyFactor !== undefined ? safetyFactor : DEFAULT_SAFETY_FACTOR;
 
-  const maxPanelsPerCircuit = Math.max(1, Math.floor(usableWatts / panelMaxWatts));
+  const usableCurrent = maxCircuitCurrent * effectiveSafetyFactor;
+  const usableWatts = usableCurrent * inputVoltage;
+
+  console.log("Power calc:", {
+  breaker: maxCircuitCurrent,
+  safetyFactor: effectiveSafetyFactor,
+  usableCurrent,
+  usableWatts,
+});
+
+  const maxPanelsPerCircuit = Math.max(
+    1, 
+    Math.floor(usableWatts / panelMaxWatts)
+  );
 
   const lines: PowerLine[] = [];
 
@@ -47,7 +64,7 @@ export function buildPowerLines(params: {
     const totalWatts = panelsOnThisCircuit * panelMaxWatts;
     const current = totalWatts / inputVoltage;
 
-    const capacityPercent = Math.round((current / usableAmps) * 100);
+    const capacityPercent = Math.round((current / usableCurrent) * 100);
 
     lines.push({
       lineId: `PWR-${order}`,
@@ -56,7 +73,9 @@ export function buildPowerLines(params: {
       voltage: inputVoltage,
       totalWatts,
       current,
-      maxCurrent: usableAmps,
+      breakerCurrent: maxCircuitCurrent,
+      usableCurrent,
+      usableWatts,
       capacityPercent,
     });
 
