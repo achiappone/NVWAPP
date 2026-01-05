@@ -1,5 +1,8 @@
 // app/preview.tsx
 import { PROCESSORS } from "@/constants/processors";
+import { GRID_COLORS } from "@/domain/gridColors";
+import { assignCabinetsToPorts, assignCabinetsToPortsVertical, buildSignalGrid } from "@/domain/signalGrid";
+import { calculateMediaServerOutputs } from "@/domain/videoSourceCalculations";
 import { calculateA10sProControlLoad } from "@/utils/control/a10sProCapacity";
 import { observer } from "mobx-react-lite";
 import React from "react";
@@ -49,6 +52,8 @@ function normalizeProcessorModel(
   if (label.includes("MX40")) return "MX40 Pro";
   return null;
 }
+
+const SIGNAL_VIEW_MODE: "linear" | "vertical" = "vertical";
 
 //Compute port utulization
 // TODO(domain): preview + PDF duplicate calculations
@@ -114,6 +119,13 @@ console.log(
   // Scale mm → screen pixels for preview
   const SCALE = 0.08;
 
+  //computer signal grid preview dimensions
+  const signalGridWidthPx =
+  geometry.totalWidthMm * SCALE;
+
+const signalGridHeightPx =
+  geometry.totalHeightMm * SCALE;
+
   // Limit preview rendering for performance
 const MAX_PREVIEW_CABINETS = 300;
 
@@ -142,7 +154,64 @@ const previewCabinets =
       voltageInput: "Mains Voltage (V):",
     };
 
+    //calculate media server sources required
+    const totalWidthPx =
+      hardware.width && hardware.pixelPitch
+        ? Math.round((hardware.width * 1000) / hardware.pixelPitch)
+        : 0;
 
+    const totalHeightPx =
+      hardware.height && hardware.pixelPitch
+        ? Math.round((hardware.height * 1000) / hardware.pixelPitch)
+        : 0;
+
+    //calculate media server outputs required
+    const mediaServerOutputs = calculateMediaServerOutputs({
+      totalWidthPx,
+      totalHeightPx,
+      outputFormat: project.control.sourceResolution as
+        | "HD (1920x1080)"
+        | "4K (3840x2160)",
+    });
+    //compute signal grid assignment (table value-based style)
+    const totalCabinets = geometry.cabinets.length;
+    const signalGrid =
+      processorSpec && controlSizing
+        ? buildSignalGrid({
+            totalCabinets,
+            portsRequired: controlSizing.portsRequired,
+          })
+        : null;
+
+        const signalCapacityError =
+          controlSizing && processorSpec
+            ? controlSizing.portsRequired > processorSpec.ports
+            : false;
+
+    //computer signal grid assignment (visual grid with routing)
+    const cabinetPortMapLinear =
+      controlSizing
+        ? assignCabinetsToPorts({
+            totalCabinets,
+            portsRequired: controlSizing.portsRequired,
+          })
+        : [];
+
+    const cabinetPortMapVertical =
+      controlSizing
+        ? assignCabinetsToPortsVertical({
+            cabinets: geometry.cabinets,
+            cabinetsPerPort: signalGrid?.cabinetsPerPort ?? [],
+            direction: "top-down",
+          })
+        : [];
+
+        const cabinetPortMap =
+          SIGNAL_VIEW_MODE === "vertical"
+            ? cabinetPortMapVertical
+            : cabinetPortMapLinear;
+
+          
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Preview</Text>
@@ -159,29 +228,98 @@ const previewCabinets =
         ]}
       >
         {previewCabinets.map((cab) => (
-          
-          <View
-            key={`${cab.row}-${cab.col}`}
-            style={{
-              position: "absolute",
-              left: cab.x * SCALE,
-              top: cab.y * SCALE,
-              width: cab.width * SCALE,
-              height: cab.height * SCALE,
-              borderWidth: 1,
-              borderColor: "#00ffcc",
-              backgroundColor: "rgba(0, 255, 204, 0.15)",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <Text style={styles.cabinetLabel}>
-              {cab.col + 1},{cab.row + 1}
-            </Text>
-          </View>
-        ))}
+  <View
+    key={`${cab.row}-${cab.col}`}
+    style={{
+      position: "absolute",
+      left: cab.x * SCALE,
+      top: cab.y * SCALE,
+      width: cab.width * SCALE,
+      height: cab.height * SCALE,
+      borderWidth: 1,
+      borderColor: "#00ffcc",
+      backgroundColor: "rgba(0, 255, 204, 0.15)",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+  >
+    <Text style={styles.cabinetLabel}>
+      {cab.col + 1},{cab.row + 1}
+    </Text>
+  </View>
+))}
+
       </View>
       </ScrollView>
+
+      {/*Signal Grid Preview*/}
+
+      {signalGrid && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Signal Grid</Text>
+
+          <View style={styles.row}>
+            <Text style={styles.label}>Ports Used:</Text>
+            <Text style={styles.value}>{signalGrid.portsUsed}</Text>
+          </View>
+
+          {signalGrid.cabinetsPerPort.map((count, index) => (
+            <View key={index} style={styles.row}>
+              <Text style={styles.label}>Port {index + 1}:</Text>
+              <Text style={styles.value}>{count} cabinets</Text>
+            </View>
+          ))}
+        
+
+          {signalCapacityError && (
+            <View style={styles.row}>
+              <Text style={[styles.label, { color: "red" }]}>
+                Signal Capacity:
+              </Text>
+              <Text style={[styles.value, { color: "red" }]}>
+                Ports required exceed available ports
+              </Text>
+            </View>
+          )}
+          
+          <View 
+            style={{
+              width: signalGridWidthPx,
+              height: signalGridHeightPx,
+              position: "relative",
+              marginBottom: 24,
+              marginTop: 15,
+            }}>
+          {previewCabinets.map((cab, index) => {
+            const portIndex = cabinetPortMap[index] ?? 0;
+            const color =
+              GRID_COLORS[portIndex % GRID_COLORS.length];
+
+            return (
+              <View
+                key={`${cab.row}-${cab.col}`}
+                style={{
+                  position: "absolute",
+                  left: cab.x * SCALE,
+                  top: cab.y * SCALE,
+                  width: cab.width * SCALE,
+                  height: cab.height * SCALE,
+                  borderWidth: 1,
+                  borderColor: color,
+                  backgroundColor: `${color}33`,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Text style={styles.cabinetLabel}>
+                  P{portIndex + 1}
+                </Text>
+              </View>
+            );
+          })}
+            </View>
+        </View>
+      )}
 
         {/* Show preview using JSON */}
       <View style={styles.section}>
@@ -216,6 +354,15 @@ const previewCabinets =
           <Text style={styles.value}>{String(value)}</Text>
         </View>
       ))}
+
+      <View style={styles.row}>
+        <Text style={styles.label}>Media Server Outputs:</Text>
+        <Text style={styles.value}>
+          {mediaServerOutputs.outputs}
+        </Text>
+      </View>
+
+            
     </View>
 
     {controlSizing && (
@@ -334,12 +481,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   section: {
-    marginTop: 20,
+    marginTop: 10,
   },
   sectionTitle: {
     color: "#FF8C00",
     fontSize: 18,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   row: {
     flexDirection: "row",
