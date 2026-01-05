@@ -1,10 +1,17 @@
 // pdf/styles/pdfStyles.ts
 export const pdfStyles = {
   sectionHeader: {
-    fontSize: 12,
+    fontSize: 18,
 
-    color: "#F37021",
+    color: "#000000",
     margin: [0, 0, 0, 6],
+  },
+
+  subSectionHeader: {
+    fontSize: 16,
+    bold: true,
+    color: "#666666",
+    margin: [0, 10, 0, 6],
   },
 
   tableLabel: {

@@ -10,7 +10,17 @@ type CoverSectionData = {
   notes?: string;
 };
 
+
 export function buildCoverSection(data: CoverSectionData) {
+  
+    const formattedDate = new Date(data.exportDate).toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    });
+
   return {
     stack: [
       // Logo (centered)
@@ -34,7 +44,7 @@ export function buildCoverSection(data: CoverSectionData) {
 
       // Subtitle
       {
-        text: "Video Wall Configuration Summary",
+        text: "Video Wall Configuration Report",
         fontSize: 14,
         italics: true,
         alignment: "center",
@@ -43,10 +53,17 @@ export function buildCoverSection(data: CoverSectionData) {
 
       // Screen list summary
       {
-        ul: data.screens.map((s) => s.label),
-        alignment: "center",
+        stack: data.screens.map((s) => ({
+          text: s.label,
+          fontSize: 16,
+          bold: true,
+          alignment: "center",
+          margin: [0, 4, 0, 0],
+        })),
         margin: [0, 0, 0, 30],
       },
+
+
 
       // Optional notes
       data.notes
@@ -59,12 +76,12 @@ export function buildCoverSection(data: CoverSectionData) {
 
       // Export date
       {
-        text: `Exported: ${data.exportDate}`,
+        text: `Exported: ${formattedDate}`,
         fontSize: 9,
         color: "#666666",
         alignment: "center",
       },
     ],
-    pageBreak: "after",
+    //pageBreak: "after",
   };
 }

@@ -63,6 +63,7 @@ export function mapPowerLinesToGrid({
 
 
   // 2. Walk cabinets and assign circuits
+  //TODO: convert to using grid colors in domain --> domain/gridColors.ts
   let cabinetIndex = 0;
 
   for (const line of powerLines) {
