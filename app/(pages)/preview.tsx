@@ -39,6 +39,8 @@ const Preview = observer(() => {
   //console.log("Application:", application);
   
 //helper function for port calculation
+// TODO(domain): preview + PDF duplicate calculations
+// Extract shared calculation helpers when refactoring
 function normalizeProcessorModel(
   label: string
 ): keyof typeof PROCESSORS | null {
@@ -49,6 +51,8 @@ function normalizeProcessorModel(
 }
 
 //Compute port utulization
+// TODO(domain): preview + PDF duplicate calculations
+// Extract shared calculation helpers when refactoring
 const { control } = project;
 
 const totalScreenPixels = 

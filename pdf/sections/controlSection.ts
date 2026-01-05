@@ -7,6 +7,9 @@ import { calculateA10sProControlLoad } from "@/utils/control/a10sProCapacity";
 // Helpers
 // ------------------------------------------------------------
 
+// TODO(domain): preview + PDF duplicate calculations
+// Extract shared calculation helpers when refactoring
+
 function normalizeProcessorModel(
   label: string
 ): keyof typeof PROCESSORS | null {
@@ -66,6 +69,8 @@ export function buildControlSection(control: any) {
   // ----------------------------------------------------------
 
   const hardware = (control as any).__hardware;
+// TODO(domain): preview + PDF duplicate calculations
+// Extract shared calculation helpers when refactoring
 
   if (hardware) {
     const totalScreenPixels =
