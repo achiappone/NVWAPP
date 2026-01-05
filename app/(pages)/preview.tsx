@@ -1,4 +1,6 @@
 // app/preview.tsx
+import { PROCESSORS } from "@/constants/processors";
+import { calculateA10sProControlLoad } from "@/utils/control/a10sProCapacity";
 import { observer } from "mobx-react-lite";
 import React from "react";
 import {
@@ -36,6 +38,42 @@ const Preview = observer(() => {
   // Build physical grid definition from product rules
   //console.log("Application:", application);
   
+//helper function for port calculation
+function normalizeProcessorModel(
+  label: string
+): keyof typeof PROCESSORS | null {
+  if (label.includes("MX20")) return "MX20";
+  if (label.includes("MX30")) return "MX30";
+  if (label.includes("MX40")) return "MX40 Pro";
+  return null;
+}
+
+//Compute port utulization
+const { control } = project;
+
+const totalScreenPixels = 
+  hardware.width && hardware.height && hardware.pixelPitch
+    ? Math.round(
+      ((hardware.width * 1000) / hardware.pixelPitch) *
+      ((hardware.height * 1000) / hardware.pixelPitch)
+    )
+    : 0;
+
+const processorKey = normalizeProcessorModel(control.processorModel);
+const processorSpec = processorKey ? PROCESSORS[processorKey] : null;
+
+const controlSizing =
+  processorSpec && totalScreenPixels > 0
+    ? calculateA10sProControlLoad({
+        totalScreenPixels,
+        cabinetPixels: 1, // placeholder until cabinets are modeled
+        frameRateHz: control.refreshRate as
+          | 24 | 25 | 30 | 50 | 60 | 120 | 144 | 240,
+        bitDepth: control.bitDepth as 8 | 10 | 12,
+        portsPerProcessor: processorSpec.ports,
+      })
+    : null;
+
 const gridDef = buildInstallationGridFromHardware({
     width: hardware.width,
     height: hardware.height,
@@ -94,10 +132,9 @@ const previewCabinets =
       powerLinking: "Power Linking:",
       powerLength: "Power Length (m):",
       signalLength: "Signal Length (m):",
-      signalType: "Signal Type:",
+      signalType: "Home-run Signal Type (Ethernet/Fiber):",
       powerType: "Power Type:",
-      signalLinking: "Signal Linking:",
-      homeRun: "Home Run:",
+      signalLinking: "Home-run Signal Linking:",
       voltageInput: "Mains Voltage (V):",
     };
 
@@ -177,6 +214,34 @@ const previewCabinets =
       ))}
     </View>
 
+    {controlSizing && (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Control Load</Text>
+
+        <View style={styles.row}>
+          <Text style={styles.label}>Ports Required:</Text>
+          <Text style={styles.value}>
+            {controlSizing.portsRequired}
+          </Text>
+        </View>
+
+        <View style={styles.row}>
+          <Text style={styles.label}>Processors Required:</Text>
+          <Text style={styles.value}>
+            {controlSizing.processorsRequired}
+          </Text>
+        </View>
+
+        <View style={styles.row}>
+          <Text style={styles.label}>Utilization:</Text>
+          <Text style={styles.value}>
+            {controlSizing.overallUtilizationPercent.toFixed(1)}%
+          </Text>
+        </View>
+      </View>
+    )}
+
+
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Cables</Text>
 
@@ -184,7 +249,10 @@ const previewCabinets =
         ([label, value]) => (
         <View key={label} style={styles.row}>
           <Text style={styles.label}>{LABELS[label] ?? label}</Text>
-          <Text style={styles.value}>{String(value)}</Text>
+          <Text style={[
+            styles.value, label === "signalType" && styles.centerValue,
+          ]} >{String(value)}
+          </Text>
         </View>
       ))}
     </View>
@@ -272,6 +340,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 4,
   },
   label: {
@@ -283,5 +352,8 @@ const styles = StyleSheet.create({
     flex: 1,
     color: "#fff",
   },
-
+  centerValue: {
+    textAlign: "left",
+    fontWeight: "600",
+  },
 });

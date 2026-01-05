@@ -11,7 +11,7 @@ import { buildSignalGrid } from "./sections/drawings/signalGrid";
 import { buildSystemGrid } from "./sections/drawings/systemGrid";
 import { buildScreenSection } from "./sections/screenSection";
 import { buildCablesSection } from "./sections/signalCableSection";
-import { styles } from "./styles";
+import { pdfStyles } from "./styles/pdfStyles";
 import { ApplicationType, ExportDocument } from "./types";
 import { buildInstallationGridFromHardware } from "./utils/gridBuilder";
 import { buildPowerLines } from "./utils/powerModel";
@@ -91,6 +91,9 @@ export function exportConfigPdf(exportData: ExportDocument) {
       { text: "", pageBreak: "before" }
     );
   }
+  
+  //fix for multiple tables in control section needing access to hardware
+  (control as any).__hardware = hardware;
 
   // ─────────────────────────────────────────────
   // DOCUMENT DEFINITION
@@ -98,7 +101,7 @@ export function exportConfigPdf(exportData: ExportDocument) {
   const docDefinition = {
     pageSize: "LETTER",
     pageMargins: [30, 60, 30, 60],
-    styles,
+    styles: pdfStyles,
 
     footer: (currentPage: number, pageCount: number) => ({
       text: `Page ${currentPage} of ${pageCount}`,

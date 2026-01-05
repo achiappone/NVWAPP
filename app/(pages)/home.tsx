@@ -169,7 +169,7 @@ const Home = observer(() => {
 
       {/* Project List */}
       <View style={{ marginTop: 30 }}>
-        <Text style={styles.sectionTitle}>Projects (press + hold to rename)</Text>
+        <Text style={styles.sectionTitle}>Projects (press + hold to rename or delete)</Text>
 
         {store.projectList.map((p) => (
   <View key={p.id} style={styles.projectRow}>
