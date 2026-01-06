@@ -8,10 +8,10 @@ import * as Sharing from "expo-sharing";
 import { observer } from "mobx-react-lite";
 import { getSnapshot } from "mobx-state-tree";
 import React, { useState } from "react";
-import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useStore } from "../../store/StoreProvider";
 
-
+const isWeb = Platform.OS === "web";
 
 const Home = observer(() => {
   
@@ -121,13 +121,18 @@ const Home = observer(() => {
 
   return (
     <View style={styles.container}>
+      <ScrollView
+        style={{ width: "100%" }}
+        contentContainerStyle={ styles.scrollContent }
+      >
       <Text style={styles.title}>Home</Text>
+
 
       {/* Active Project */}
       {project && (
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>Active Project</Text>
-          <Text style={styles.cardTitle}>{project.name}</Text>
+          <Text style={styles.cardLabel}>Active Project:</Text>
+          <Text style={styles.cardTitle}>"{project.name}"</Text>
 
           <TouchableOpacity
             style={styles.primaryButton}
@@ -139,69 +144,72 @@ const Home = observer(() => {
       )}
 
       {/* New Project */}
-      <TouchableOpacity
-        style={styles.secondaryButton}
-        onPress={() => {
-          store.createProject("New Project");
-          router.push("/hardware");
-        }}
-      >
-        <Text style={styles.secondaryButtonText}>+ New Project</Text>
-      </TouchableOpacity>
+      <View style={styles.card}>
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={() => {
+            store.createProject("New Project");
+            router.push("/hardware");
+          }}
+        >
+          <Text style={styles.secondaryButtonText}>+ New Project</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.secondaryButton, { marginTop: 12 }]}
-        onPress={exportAllProjects}
-      >
-        <Text style={styles.secondaryButtonText}>
-          Export All Projects
-        </Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.secondaryButton, { marginTop: 12 }]}
+          onPress={exportAllProjects}
+        >
+          <Text style={styles.secondaryButtonText}>
+            Export All Projects
+          </Text>
+        </TouchableOpacity>
 
-            <TouchableOpacity
-        style={[styles.secondaryButton, { marginTop: 12 }]}
-        onPress={importProjects}
-      >
-        <Text style={styles.secondaryButtonText}>
-          Import All Projects
-        </Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.secondaryButton, { marginTop: 12 }]}
+          onPress={importProjects}
+        >
+          <Text style={styles.secondaryButtonText}>
+            Import All Projects
+          </Text>
+          
+        </TouchableOpacity>
+      </View>
 
       {/* Project List */}
       <View style={{ marginTop: 30 }}>
         <Text style={styles.sectionTitle}>Projects (press + hold to rename or delete)</Text>
 
         {store.projectList.map((p) => (
-  <View key={p.id} style={styles.projectRow}>
-    {/* Project name */}
-    <TouchableOpacity
-      style={styles.projectNameContainer}
-      onPress={() => {
-        store.setActiveProject(p.id);
-        router.push("/hardware");
-      }}
-      onLongPress={() => {
-        setRenameProjectId(p.id);
-        setProjectNameDraft(p.name);
-      }}
-    >
-      <Text style={styles.projectName}>{p.name}</Text>
-    </TouchableOpacity>
+        <View key={p.id} style={styles.projectRow}>
+          {/* Project name */}
+          <TouchableOpacity
+            style={styles.projectNameContainer}
+            onPress={() => {
+              store.setActiveProject(p.id);
+              router.push("/hardware");
+            }}
+            onLongPress={() => {
+              setRenameProjectId(p.id);
+              setProjectNameDraft(p.name);
+            }}
+          >
+            <Text style={styles.projectName}>{p.name}</Text>
+          </TouchableOpacity>
 
-    {/* Actions */}
-    <View style={styles.projectActions}>
-      <TouchableOpacity
-        style={styles.reviewButton}
-        onPress={() => {
-          store.setActiveProject(p.id);
-          router.push("/preview");
-        }}
-      >
-        <Text style={styles.reviewButtonText}>Review</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-))}
+          {/* Actions */}
+          <View style={styles.projectActions}>
+            <TouchableOpacity
+              style={styles.reviewButton}
+              onPress={() => {
+                store.setActiveProject(p.id);
+                router.push("/preview");
+              }}
+            >
+              <Text style={styles.reviewButtonText}>Review</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+          ))}
 
 
                 {renameProjectId && (
@@ -282,6 +290,7 @@ const Home = observer(() => {
       </View>
       )}
         </View>
+      </ScrollView>
       </View>
     );
 });
@@ -292,7 +301,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000",
-    padding: 20,
+    padding: 15,
   },
   title: {
     color: "#fff",
@@ -300,10 +309,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   card: {
-    backgroundColor: "#111",
-    borderRadius: 10,
+    backgroundColor: "#262525ff",
+    borderRadius: 15,
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   cardLabel: {
     color: "#aaa",
@@ -317,23 +326,25 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     backgroundColor: "#ff7a00",
-    paddingVertical: 12,
+    borderWidth: 1,
+    paddingVertical: 10,
     borderRadius: 8,
+    minWidth: 50,
     alignItems: "center",
   },
   primaryButtonText: {
     color: "#000",
     fontSize: 16,
     fontWeight: "600",
-    minWidth: 75,
+    minWidth: 50,
     textAlign: "center",
   },
   secondaryButton: {
     borderColor: "#ff7a00",
     borderWidth: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: 8,
-    minWidth: 75,
+    minWidth: 50,
     alignItems: "center",
   },
   secondaryButtonText: {
@@ -368,7 +379,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   renameModal: {
-    backgroundColor: "#111",
+    backgroundColor: "#4b4a4aff",
     padding: 20,
     borderRadius: 10,
     width: "85%",
@@ -379,7 +390,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   renameInput: {
-    backgroundColor: "#000",
+    backgroundColor: "#4b4a4aff",
     color: "#fff",
     borderColor: "#333",
     borderWidth: 1,
@@ -433,7 +444,11 @@ const styles = StyleSheet.create({
     borderBottomColor: "#222",
     borderBottomWidth: 1,
   },
-
+  scrollContent: {
+    paddingBottom: 40,
+    paddingTop: 20,
+    marginRight: isWeb ? 16 : 0,
+  },
 
 
 });

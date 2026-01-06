@@ -10,7 +10,7 @@ export type SignalGridResult = {
   cabinetsPerPort: number[];
 };
 
-export function buildSignalGrid(
+export function calculateSignalGrid(
   params: SignalGridParams
 ): SignalGridResult {
   const { totalCabinets, portsRequired } = params;
@@ -121,3 +121,4 @@ export function assignCabinetsToPorts(params: {
 
   return assignments;
 }
+

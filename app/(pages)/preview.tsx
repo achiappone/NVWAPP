@@ -1,17 +1,19 @@
 // app/preview.tsx
 import { PROCESSORS } from "@/constants/processors";
 import { GRID_COLORS } from "@/domain/gridColors";
-import { assignCabinetsToPorts, assignCabinetsToPortsVertical, buildSignalGrid } from "@/domain/signalGrid";
+import { assignCabinetsToPorts, assignCabinetsToPortsVertical, calculateSignalGrid } from "@/domain/signalGrid";
 import { calculateMediaServerOutputs } from "@/domain/videoSourceCalculations";
 import { calculateA10sProControlLoad } from "@/utils/control/a10sProCapacity";
 import { observer } from "mobx-react-lite";
 import React from "react";
 import {
+  ActivityIndicator,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { exportConfigPdf } from "../../pdf/buildPdf";
 import { buildInstallationGridFromHardware } from "../../pdf/utils/gridBuilder";
@@ -30,6 +32,7 @@ const Preview = observer(() => {
   const exportData = buildConfigExport(project);
   console.log(exportData.project.screens[0].cables);
 
+  const [isExporting, setIsExporting] = React.useState(false);
 
   // Build normalized export data
   const hardware = project.hardware;
@@ -41,6 +44,23 @@ const Preview = observer(() => {
   // Build physical grid definition from product rules
   //console.log("Application:", application);
   
+    //export helper function for button
+    const handleExport = async () => {
+      try {
+        setIsExporting(true);
+
+        // Give React one frame to render the overlay
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        await exportConfigPdf(exportData);
+      } catch (err) {
+        console.error("Export failed", err);
+      } finally {
+        setIsExporting(false);
+      }
+    };
+
+
 //helper function for port calculation
 // TODO(domain): preview + PDF duplicate calculations
 // Extract shared calculation helpers when refactoring
@@ -177,7 +197,7 @@ const previewCabinets =
     const totalCabinets = geometry.cabinets.length;
     const signalGrid =
       processorSpec && controlSizing
-        ? buildSignalGrid({
+        ? calculateSignalGrid({
             totalCabinets,
             portsRequired: controlSizing.portsRequired,
           })
@@ -213,50 +233,79 @@ const previewCabinets =
 
           
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ alignItems: "stretch" }}
+      scrollEnabled={!isExporting}
+    >
       <Text style={styles.title}>Preview</Text>
 
-      <Text style={styles.subTitle}>Grid Preview (Scaled)</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator>
-      <View
-        style={[
-          styles.gridContainer,
-          {
-            width: geometry.totalWidthMm * SCALE,
-            height: geometry.totalHeightMm * SCALE,
-          },
-        ]}
-      >
-        {previewCabinets.map((cab) => (
-  <View
-    key={`${cab.row}-${cab.col}`}
-    style={{
-      position: "absolute",
-      left: cab.x * SCALE,
-      top: cab.y * SCALE,
-      width: cab.width * SCALE,
-      height: cab.height * SCALE,
-      borderWidth: 1,
-      borderColor: "#00ffcc",
-      backgroundColor: "rgba(0, 255, 204, 0.15)",
-      justifyContent: "center",
-      alignItems: "center",
-    }}
-  >
-    <Text style={styles.cabinetLabel}>
-      {cab.col + 1},{cab.row + 1}
-    </Text>
-  </View>
-))}
-
+            <View style={styles.exportContainer}>
+        <TouchableOpacity
+          style={[
+            styles.exportButton,
+            isExporting && { opacity: 0.6 },
+          ]}
+          onPress={handleExport}
+          disabled={isExporting}
+        >
+          <Text style={styles.exportText}>
+            {isExporting ? "Exporting..." : "Export PDF"}
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      <Modal visible={isExporting} transparent animationType="fade">
+        <View style={styles.blocker}>
+          <View style={styles.blockerCard}>
+            <ActivityIndicator size="large" />
+            <Text style={styles.blockerText}>Preparing export...</Text>
+          </View>
+        </View>
+      </Modal>
+
+
+      <Text style={styles.sectionTitle}>Grid Preview (Scaled)</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator>
+        <View
+          style={[
+            styles.gridContainer,
+            {
+              width: geometry.totalWidthMm * SCALE,
+              height: geometry.totalHeightMm * SCALE,
+            },
+          ]}
+        >
+          {previewCabinets.map((cab) => (
+        <View
+          key={`${cab.row}-${cab.col}`}
+          style={{
+            position: "absolute",
+            left: cab.x * SCALE,
+            top: cab.y * SCALE,
+            width: cab.width * SCALE,
+            height: cab.height * SCALE,
+            borderWidth: 1,
+            borderColor: "#00ffcc",
+            backgroundColor: "rgba(0, 255, 204, 0.15)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+        <Text style={styles.cabinetLabel}>
+          {cab.col + 1},{cab.row + 1}
+        </Text>
+        </View>
+        ))}
+
+        </View>
       </ScrollView>
 
       {/*Signal Grid Preview*/}
-
+        
       {signalGrid && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Signal Grid</Text>
+          <Text style={styles.sectionTitle}>Signal Distribution</Text>
 
           <View style={styles.row}>
             <Text style={styles.label}>Ports Used:</Text>
@@ -271,6 +320,7 @@ const previewCabinets =
           ))}
         
 
+          <Text style={styles.sectionTitle2}>Signal Grid</Text>
           {signalCapacityError && (
             <View style={styles.row}>
               <Text style={[styles.label, { color: "red" }]}>
@@ -282,14 +332,22 @@ const previewCabinets =
             </View>
           )}
           
-          <View 
-            style={{
-              width: signalGridWidthPx,
-              height: signalGridHeightPx,
-              position: "relative",
-              marginBottom: 24,
-              marginTop: 15,
-            }}>
+          <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator
+              contentContainerStyle={{
+                alignItems: "flex-start",
+              }}
+            >
+              <View
+                style={{
+                  width: signalGridWidthPx,
+                  height: signalGridHeightPx,
+                  position: "relative",
+                  marginBottom: 24,
+                  marginTop: 15,
+                }}
+              >
           {previewCabinets.map((cab, index) => {
             const portIndex = cabinetPortMap[index] ?? 0;
             const color =
@@ -318,6 +376,7 @@ const previewCabinets =
             );
           })}
             </View>
+            </ScrollView>
         </View>
       )}
 
@@ -408,19 +467,6 @@ const previewCabinets =
       ))}
     </View>
 
-
-
-      <View style={styles.exportContainer}>
-        <TouchableOpacity
-          style={styles.exportButton}
-          onPress={() => {
-            console.log("Export pressed");
-            exportConfigPdf(exportData);
-          }}
-        >
-          <Text style={styles.exportText}>Export PDF</Text>
-        </TouchableOpacity>
-      </View>
     </ScrollView>
   );
 });
@@ -432,6 +478,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#000",
     padding: 20,
+    paddingTop: 50,
   },
   title: {
     color: "#fff",
@@ -467,13 +514,14 @@ const styles = StyleSheet.create({
   },
   exportContainer: {
     marginTop: 20,
-    alignItems: "center",
   },
   exportButton: {
     backgroundColor: "#FF8C00",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     borderRadius: 8,
+    alignSelf: "flex-start",
+    marginBottom: 20,
   },
   exportText: {
     color: "#000",
@@ -486,7 +534,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: "#FF8C00",
     fontSize: 18,
-    marginBottom: 4,
+    marginBottom: 6,
+  },
+  sectionTitle2: {
+    color: "#FF8C00",
+    fontSize: 18,
+    marginBottom: 0,
+    marginTop: 12,
   },
   row: {
     flexDirection: "row",
@@ -505,6 +559,55 @@ const styles = StyleSheet.create({
   },
   centerValue: {
     textAlign: "left",
+    fontWeight: "600",
+  },
+  exportOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  exportModal: {
+    backgroundColor: "#111",
+    padding: 20,
+    borderRadius: 10,
+    minWidth: 220,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#FF8C00",
+  },
+  exportLabel: {
+    marginTop: 12,
+    color: "#fff",
+    fontSize: 14,
+  },
+  exportButtonDisabled: {
+    opacity: 0.6,
+  },
+  blocker: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  blockerCard: {
+    backgroundColor: "#111",
+    padding: 20,
+    borderRadius: 12,
+    minWidth: 260,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#FF8C00",
+  },
+  blockerText: {
+    marginTop: 12,
+    color: "#fff",
+    fontSize: 16,
     fontWeight: "600",
   },
 });

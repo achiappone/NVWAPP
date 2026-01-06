@@ -299,6 +299,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#000",
     padding: 20,
+    paddingTop: 50,
   },
   title: {
     color: "#fff",

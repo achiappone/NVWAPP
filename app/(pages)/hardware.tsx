@@ -64,7 +64,7 @@ export default observer(function Hardware() {
 
 
   const applicationOptions = ["Rental", "Installation"] as const;
-  const pixelPitchOptions = ["1.9", "2.6", "3.9",];
+  const pixelPitchOptions = ["1.9", "2.9", "3.9",];
 
 
   return (
@@ -227,6 +227,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#000",
     padding: 20,
+    paddingTop: 50,
   },
   title: {
     color: "#fff",
