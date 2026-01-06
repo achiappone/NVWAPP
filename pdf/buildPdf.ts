@@ -1,16 +1,28 @@
-// pdf/buildPdf.ts
 import pdfMake from "pdfmake/build/pdfmake";
 import * as pdfFonts from "pdfmake/build/vfs_fonts";
 import { chauvetLogoBase64 } from "./assets/chauvetLogo";
+
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
+import { Platform } from "react-native";
+
+import { PROCESSORS } from "../constants/processors";
+import {
+  assignCabinetsToPortsVertical,
+  calculateSignalGrid,
+} from "../domain/signalGrid";
+import { calculateA10sProControlLoad } from "../utils/control/a10sProCapacity";
+
 import { buildBomSection } from "./sections/bomSection";
 import { buildControlSection } from "./sections/controlSection";
 import { buildCoverSection } from "./sections/coverSection";
 import { buildScreenGrid } from "./sections/drawings/buildScreenGrid";
 import { buildPowerGrid } from "./sections/drawings/powerGrid";
-import { buildSignalGrid } from "./sections/drawings/signalGrid";
+import { buildSignalGridSection } from "./sections/drawings/signalGrid";
 import { buildSystemGrid } from "./sections/drawings/systemGrid";
 import { buildScreenSection } from "./sections/screenSection";
 import { buildCablesSection } from "./sections/signalCableSection";
+
 import { pdfStyles } from "./styles/pdfStyles";
 import { ApplicationType, ExportDocument } from "./types";
 import { buildInstallationGridFromHardware } from "./utils/gridBuilder";
@@ -18,9 +30,23 @@ import { buildPowerLines } from "./utils/powerModel";
 
 let pdfInitialized = false;
 
-export function exportConfigPdf(exportData: ExportDocument) {
+/**
+ * SAME processor normalization used in Preview
+ */
+function normalizeProcessorModel(
+  label: string
+): keyof typeof PROCESSORS | null {
+  if (label.includes("MX20")) return "MX20";
+  if (label.includes("MX30")) return "MX30";
+  if (label.includes("MX40")) return "MX40 Pro";
+  return null;
+}
+
+export function exportConfigPdf(
+  exportData: ExportDocument
+): Promise<void> {
   // ─────────────────────────────────────────────
-  // PDF MAKE INIT (SSR SAFE)
+  // PDFMAKE INIT (SSR SAFE)
   // ─────────────────────────────────────────────
   if (!pdfInitialized) {
     const vfs =
@@ -29,8 +55,9 @@ export function exportConfigPdf(exportData: ExportDocument) {
       (pdfFonts as any);
 
     if (!vfs) {
-      console.error("pdfMake fonts not available", pdfFonts);
-      return;
+      return Promise.reject(
+        new Error("pdfMake fonts not available")
+      );
     }
 
     pdfMake.vfs = vfs;
@@ -57,29 +84,42 @@ export function exportConfigPdf(exportData: ExportDocument) {
     .trim()
     .toLowerCase() as ApplicationType;
 
+  // Some sections expect hardware on control
+  //(control as any).__hardware = hardware;
+
   // ─────────────────────────────────────────────
-  // OPTIONAL POWER GRID SECTION
+  // GRID DEFINITION
+  // ─────────────────────────────────────────────
+  const gridDef = buildInstallationGridFromHardware({
+    width: hardware.widthMeters,
+    height: hardware.heightMeters,
+    application,
+  });
+
+  const rows = gridDef.rowHeightsMm.length;
+  const cols = gridDef.columnWidthsMm.length;
+
+  const cabinets: { row: number; col: number }[] = [];
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      cabinets.push({ row, col });
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // POWER GRID
   // ─────────────────────────────────────────────
   const powerSection: any[] = [];
-
   const totalPanels =
     hardware.panelsWide * hardware.panelsHigh;
 
-  if (totalPanels <= 0) {
-    console.warn("No panels detected — skipping power grid");
-  } else {
+  if (totalPanels > 0) {
     const powerLines = buildPowerLines({
       totalPanels,
       panelMaxWatts: hardware.maxWattsPerPanel,
       inputVoltage: cables.inputVoltage,
       maxCircuitCurrent: 16,
       safetyFactor: 0.8,
-    });
-
-    const gridDef = buildInstallationGridFromHardware({
-      width: hardware.widthMeters,
-      height: hardware.heightMeters,
-      application,
     });
 
     powerSection.push(
@@ -91,9 +131,67 @@ export function exportConfigPdf(exportData: ExportDocument) {
       { text: "", pageBreak: "before" }
     );
   }
-  
-  //fix for multiple tables in control section needing access to hardware
-  (control as any).__hardware = hardware;
+
+  // ─────────────────────────────────────────────
+  // SIGNAL GRID
+  // ─────────────────────────────────────────────
+  const processorKey = normalizeProcessorModel(
+    control.processorModel
+  );
+  const processorSpec = processorKey
+    ? PROCESSORS[processorKey]
+    : null;
+
+  const totalScreenPixels =
+    hardware.widthMeters &&
+    hardware.heightMeters &&
+    hardware.pixelPitch
+      ? Math.round(
+          ((hardware.widthMeters * 1000) /
+            hardware.pixelPitch) *
+            ((hardware.heightMeters * 1000) /
+              hardware.pixelPitch)
+        )
+      : 0;
+
+  const controlSizing =
+    processorSpec && totalScreenPixels > 0
+      ? calculateA10sProControlLoad({
+          totalScreenPixels,
+          cabinetPixels: 1,
+          frameRateHz: control.refreshRate as
+            | 24
+            | 25
+            | 30
+            | 50
+            | 60
+            | 120
+            | 144
+            | 240,
+          bitDepth: control.bitDepth as 8 | 10 | 12,
+          portsPerProcessor: processorSpec.ports,
+        })
+      : null;
+
+  const portsRequired =
+    controlSizing?.portsRequired ?? 0;
+
+  const signalGridData =
+    portsRequired > 0
+      ? calculateSignalGrid({
+          totalCabinets: cabinets.length,
+          portsRequired,
+        })
+      : null;
+
+  const cabinetPortAssignments = signalGridData
+    ? assignCabinetsToPortsVertical({
+        cabinets,
+        cabinetsPerPort:
+          signalGridData.cabinetsPerPort,
+        direction: "top-down",
+      })
+    : [];
 
   // ─────────────────────────────────────────────
   // DOCUMENT DEFINITION
@@ -113,9 +211,9 @@ export function exportConfigPdf(exportData: ExportDocument) {
     content: [
       buildCoverSection({
         projectName: exportData.meta.projectName,
-        screens: exportData.project.screens.map(s => ({
-          label: s.label,
-        })),
+        screens: exportData.project.screens.map(
+          (s) => ({ label: s.label })
+        ),
         exportDate: exportData.meta.exportedAt,
         logoBase64: chauvetLogoBase64,
         notes: exportData.meta.notes,
@@ -132,7 +230,10 @@ export function exportConfigPdf(exportData: ExportDocument) {
 
       { text: "", pageBreak: "before" },
 
-      ...buildControlSection(control),
+      ...buildControlSection({
+        ...control,
+      hardware,
+  }),
 
       { text: "", pageBreak: "before" },
 
@@ -154,9 +255,19 @@ export function exportConfigPdf(exportData: ExportDocument) {
 
       ...powerSection,
 
-      ...buildSignalGrid({ hardware, control, cables }),
-
-      { text: "", pageBreak: "before" },
+      ...(signalGridData
+        ? [
+            ...buildSignalGridSection({
+              rows,
+              cols,
+              cabinets,
+              cabinetsPerPort:
+                signalGridData.cabinetsPerPort,
+              cabinetPortAssignments,
+            }),
+            { text: "", pageBreak: "before" },
+          ]
+        : []),
 
       ...buildSystemGrid({ hardware, control, cables }),
 
@@ -166,5 +277,56 @@ export function exportConfigPdf(exportData: ExportDocument) {
     ],
   };
 
-  pdfMake.createPdf(docDefinition).download("video-wall-config.pdf");
+  // ─────────────────────────────────────────────
+  // PDF EXPORT (WEB vs MOBILE) — PROMISE-BASED
+  // ─────────────────────────────────────────────
+  return new Promise<void>((resolve, reject) => {
+    try {
+      if (Platform.OS === "web") {
+        pdfMake
+          .createPdf(docDefinition)
+          .getBlob((blob: Blob) => {
+            try {
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+
+              a.href = url;
+              a.download = "video-wall-config.pdf";
+              a.click();
+
+              URL.revokeObjectURL(url);
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          });
+
+        return;
+      }
+
+      // iOS + Android
+      pdfMake.createPdf(docDefinition).getBase64(
+        async (base64: string) => {
+          try {
+            const fileUri =
+              FileSystem.documentDirectory +
+              "video-wall-config.pdf";
+
+            await FileSystem.writeAsStringAsync(
+              fileUri,
+              base64,
+              { encoding: FileSystem.EncodingType.Base64 }
+            );
+
+            await Sharing.shareAsync(fileUri);
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        }
+      );
+    } catch (err) {
+      reject(err);
+    }
+  });
 }

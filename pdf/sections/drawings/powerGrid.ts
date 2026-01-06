@@ -259,7 +259,7 @@ widths: [60, "*", "*", "*", 80, 60, 60],
     {
       text: "Power Grid",
       style: "sectionHeader",
-      margin: [0, 16, 0, 8],
+      margin: [0, 6, 0, 4],
     },
     ...gridBlocks,
   ];

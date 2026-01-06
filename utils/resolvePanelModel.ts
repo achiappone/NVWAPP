@@ -16,8 +16,8 @@ type ModelRule = {
 
 const MODEL_RULES: ModelRule[] = [
   // Rental
-  { application: "rental", pixelPitch: 2.9, model: "F2", maxWattsPerPanel: 250 },
   { application: "rental", pixelPitch: 1.9, model: "REM 1", maxWattsPerPanel: 200 },
+  { application: "rental", pixelPitch: 2.9, model: "F2", maxWattsPerPanel: 250 },
   { application: "rental", pixelPitch: 3.9, model: "REM 3 IP", maxWattsPerPanel: 300 },
 
   // Installation
