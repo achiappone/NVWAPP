@@ -39,7 +39,7 @@ export function assignCabinetsToPortsVertical(params: {
 }): number[] {
   const { cabinets, cabinetsPerPort, direction } = params;
 
-  // Group cabinets by column
+  // 1. Group cabinets by column
   const columns = new Map<number, { index: number; row: number }[]>();
 
   cabinets.forEach((cab, index) => {
@@ -49,40 +49,48 @@ export function assignCabinetsToPortsVertical(params: {
     columns.get(cab.col)!.push({ index, row: cab.row });
   });
 
-  // Sort columns left → right
-  const sortedColumns = [...columns.entries()]
-    .sort(([a], [b]) => a - b)
-    .map(([, cabs]) =>
-      cabs.sort((a, b) =>
-        direction === "top-down"
-          ? a.row - b.row
-          : b.row - a.row
-      )
+  // 2. Build continuous traversal (serpentine)
+  const traversal: number[] = [];
+
+  const sortedColumns = [...columns.entries()].sort(
+    ([a], [b]) => a - b
+  );
+
+  sortedColumns.forEach(([, columnCabs], colIdx) => {
+    const goingDown =
+      direction === "top-down"
+        ? colIdx % 2 === 0
+        : colIdx % 2 !== 0;
+
+    const ordered = [...columnCabs].sort((a, b) =>
+      goingDown ? a.row - b.row : b.row - a.row
     );
 
+    for (const cab of ordered) {
+      traversal.push(cab.index);
+    }
+  });
+
+  // 3. Assign ports using traversal cursor
   const assignments = new Array(cabinets.length).fill(0);
 
   let portIndex = 0;
-  let assignedOnPort = 0;
+  let usedOnPort = 0;
   let portCapacity = cabinetsPerPort[portIndex] ?? 0;
 
-  for (const column of sortedColumns) {
-    for (const cab of column) {
-      // Move to next port if capacity reached
-      if (assignedOnPort >= portCapacity) {
-        portIndex++;
-        assignedOnPort = 0;
-        portCapacity = cabinetsPerPort[portIndex] ?? 0;
-      }
-
-      assignments[cab.index] = portIndex;
-      assignedOnPort++;
+  for (const cabinetIndex of traversal) {
+    if (usedOnPort >= portCapacity) {
+      portIndex++;
+      usedOnPort = 0;
+      portCapacity = cabinetsPerPort[portIndex] ?? 0;
     }
+
+    assignments[cabinetIndex] = portIndex;
+    usedOnPort++;
   }
 
   return assignments;
 }
-
 
 export function assignCabinetsToPorts(params: {
   totalCabinets: number;
