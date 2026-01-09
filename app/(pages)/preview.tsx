@@ -2,6 +2,7 @@
 import { PROCESSORS } from "@/constants/processors";
 import { GRID_COLORS } from "@/domain/gridColors";
 import { assignCabinetsToPorts, assignCabinetsToPortsVertical, calculateSignalGrid } from "@/domain/signalGrid";
+import { calculateSystemGrid } from "@/domain/systemGrid";
 import { calculateMediaServerOutputs } from "@/domain/videoSourceCalculations";
 import { calculateA10sProControlLoad } from "@/utils/control/a10sProCapacity";
 import { observer } from "mobx-react-lite";
@@ -20,6 +21,7 @@ import { buildInstallationGridFromHardware } from "../../pdf/utils/gridBuilder";
 import { buildScreenGridGeometry } from "../../pdf/utils/gridMath";
 import { useStore } from "../../store/StoreProvider";
 import { buildConfigExport } from "../../utils/buildConfigExport";
+
 
 const Preview = observer(() => {
   const store = useStore();
@@ -231,7 +233,29 @@ const previewCabinets =
             ? cabinetPortMapVertical
             : cabinetPortMapLinear;
 
-          
+    const systemGrid =
+      cabinetPortMapVertical.length > 0
+        ? calculateSystemGrid(
+            geometry.cabinets,
+            cabinetPortMapVertical,
+            {
+              id: "processor-1",
+              label: control.processorModel,
+              model: control.processorModel,
+            }
+          )
+        : null;
+
+        const cabinetsByOutput = new Map<number, number[]>();
+          cabinetPortMapVertical.forEach((outputIndex, cabIndex) => {
+            if (!cabinetsByOutput.has(outputIndex)) {
+              cabinetsByOutput.set(outputIndex, []);
+            }
+            cabinetsByOutput.get(outputIndex)!.push(cabIndex);
+          });
+
+
+         
   return (
     <ScrollView
       style={styles.container}
@@ -377,10 +401,110 @@ const previewCabinets =
           })}
             </View>
             </ScrollView>
-        </View>
+        </View> 
       )}
+        {/* Show System Distribution */}
+        {systemGrid && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle2}>System Distribution</Text>
 
-        {/* Show preview using JSON */}
+            {/* Media Server Summary */}
+            <View style={styles.row}>
+              <Text style={styles.label}>Media Server Outputs:</Text>
+              <Text style={styles.value}>{mediaServerOutputs.outputs}</Text>
+            </View>
+
+            {/* Processor Summary */}
+            {systemGrid.processors.map((processor) => (
+              <View key={processor.id} style={{ marginTop: 10 }}>
+                <Text
+                  style={{
+                    color: "#fff",
+                    fontSize: 16,
+                    fontWeight: "600",
+                    marginBottom: 4,
+                  }}
+                >
+                  {processor.label}
+                </Text>
+
+                {processor.outputs.map((output) => (
+                  <View key={output.outputIndex} style={styles.row}>
+                    <Text style={styles.label}>
+                      Out {output.outputIndex + 1}:
+                    </Text>
+                    <Text style={styles.value}>
+                      {output.cabinetGroup.width} ×{" "}
+                      {output.cabinetGroup.height} (
+                      {output.cabinetGroup.cabinetCount} cabinets)
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Show System Grid */}
+        {systemGrid && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle2}>System Grid</Text>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator
+              contentContainerStyle={styles.systemDiagram}
+            >
+              {/* Media Server */}
+              <View style={styles.systemColumn}>
+                <View style={styles.systemBox}>
+                  <Text style={styles.systemTitle}>Media Server</Text>
+                  <Text style={styles.systemSub}>
+                    Output(s): {mediaServerOutputs.outputs}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Arrow */}
+              <View style={styles.arrowColumn}>
+                <Text style={styles.bigArrow}>▶</Text>
+              </View>
+
+              {/* Processor(s) */}
+              {systemGrid.processors.map((processor) => (
+                <View key={processor.id} style={styles.systemColumn}>
+                  <View style={styles.systemBox}>
+                    <Text style={styles.systemTitle}>
+                      {processor.label}
+                    </Text>
+
+                    {processor.outputs.map((output) => (
+                      <View key={output.outputIndex} style={styles.outputRow}>
+                        <Text style={styles.outputLabel}>
+                          Out {output.outputIndex + 1}
+                        </Text>
+
+                        <Text style={styles.arrow}>▶</Text>
+
+                        <View style={styles.cabinetBlock}>
+                          <Text style={styles.cabinetText}>
+                            {output.cabinetGroup.width} ×{" "}
+                            {output.cabinetGroup.height}
+                          </Text>
+                          <Text style={styles.cabinetSub}>
+                            {output.cabinetGroup.cabinetCount} cabinets
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+      {/* Show preview data from stores; formatting uses definitions above, const LABELS */}
       <View style={styles.section}>
       <Text style={styles.sectionTitle}>Project Info</Text>
 
@@ -547,6 +671,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 4,
+    marginTop: 4,
   },
   label: {
     width: 160,
@@ -609,5 +734,76 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  systemRow: {
+    marginTop: 12,
+  },
+  systemTitle: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+  systemSub: {
+    color: "#aaa",
+    fontSize: 14,
+  },
+  outputLabel: {
+    color: "#aaa",
+    width: 60,
+  },
+  arrow: {
+    color: "#FF8C00",
+    marginHorizontal: 6,
+    fontSize: 16,
+  },
+  cabinetBlock: {
+    borderWidth: 1,
+    borderColor: "#666",
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: "#1a1a1a",
+  },
+  cabinetText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  cabinetSub: {
+    color: "#aaa",
+    fontSize: 12,
+  },
+  systemScrollContent: {
+    paddingVertical: 10,
+  },
+  systemDiagram: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingRight: 20, // prevents last column clipping
+  },
+  systemColumn: {
+    marginRight: 24,
+  },
+  arrowColumn: {
+    justifyContent: "center",
+    marginHorizontal: 10,
+  },
+  bigArrow: {
+    color: "#FF8C00",
+    fontSize: 32,
+    marginTop: 20,
+  },
+  systemBox: {
+    borderWidth: 2,
+    borderColor: "#FF8C00",
+    borderRadius: 10,
+    padding: 12,
+    backgroundColor: "#111",
+    minWidth: 220, // 🔑 prevents collapse
+  },
+  outputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
   },
 });

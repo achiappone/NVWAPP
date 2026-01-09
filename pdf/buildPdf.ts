@@ -23,6 +23,7 @@ import { buildSystemGrid } from "./sections/drawings/systemGrid";
 import { buildScreenSection } from "./sections/screenSection";
 import { buildCablesSection } from "./sections/signalCableSection";
 
+import { calculateSystemGrid } from "../domain/systemGrid";
 import { pdfStyles } from "./styles/pdfStyles";
 import { ApplicationType, ExportDocument } from "./types";
 import { buildInstallationGridFromHardware } from "./utils/gridBuilder";
@@ -193,6 +194,21 @@ export function exportConfigPdf(
       })
     : [];
 
+
+      const systemGrid =
+        cabinetPortAssignments.length > 0
+          ? calculateSystemGrid(
+              cabinets,
+              cabinetPortAssignments,
+              {
+                id: "processor-1",
+                label: control.processorModel,
+                model: control.processorModel,
+              }
+            )
+          : null;
+
+
   // ─────────────────────────────────────────────
   // DOCUMENT DEFINITION
   // ─────────────────────────────────────────────
@@ -269,7 +285,11 @@ export function exportConfigPdf(
           ]
         : []),
 
-      ...buildSystemGrid({ hardware, control, cables }),
+      ...systemGrid
+        ? [
+            ...buildSystemGrid(systemGrid),
+          ]
+        : [],
 
       { text: "", pageBreak: "before" },
 
