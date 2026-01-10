@@ -56,6 +56,13 @@ export function calculateSystemGrid(
             },
           })
         ),
+
+        //added for system grid
+        cabinetOutputAssignments: cabinets.map((cab, index) => ({
+          row: cab.row,
+          col: cab.col,
+          outputIndex: cabinetPortAssignments[index],
+        })),
       },
     ],
   };

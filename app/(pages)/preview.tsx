@@ -434,8 +434,6 @@ const previewCabinets =
                       Out {output.outputIndex + 1}:
                     </Text>
                     <Text style={styles.value}>
-                      {output.cabinetGroup.width} ×{" "}
-                      {output.cabinetGroup.height} (
                       {output.cabinetGroup.cabinetCount} cabinets)
                     </Text>
                   </View>
@@ -487,12 +485,8 @@ const previewCabinets =
                         <Text style={styles.arrow}>▶</Text>
 
                         <View style={styles.cabinetBlock}>
-                          <Text style={styles.cabinetText}>
-                            {output.cabinetGroup.width} ×{" "}
-                            {output.cabinetGroup.height}
-                          </Text>
                           <Text style={styles.cabinetSub}>
-                            {output.cabinetGroup.cabinetCount} cabinets
+                            {output.cabinetGroup.cabinetCount} cabinet(s)
                           </Text>
                         </View>
                       </View>
@@ -674,7 +668,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   label: {
-    width: 160,
+    width: 150,
     color: "#aaa",
     fontWeight: "600",
   },
@@ -779,19 +773,21 @@ const styles = StyleSheet.create({
   systemDiagram: {
     flexDirection: "row",
     alignItems: "flex-start",
-    paddingRight: 20, // prevents last column clipping
+    paddingRight: 10, // prevents last column clipping
+    marginTop: 10,
   },
   systemColumn: {
     marginRight: 24,
   },
   arrowColumn: {
     justifyContent: "center",
-    marginHorizontal: 10,
+    marginHorizontal: 0,
   },
   bigArrow: {
     color: "#FF8C00",
-    fontSize: 32,
+    fontSize: 30,
     marginTop: 20,
+    justifyContent: "center",
   },
   systemBox: {
     borderWidth: 2,
@@ -799,7 +795,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
     backgroundColor: "#111",
-    minWidth: 220, // 🔑 prevents collapse
+    //minWidth: 220, // 🔑 prevents collapse, comments out to fix oversize bug
   },
   outputRow: {
     flexDirection: "row",
