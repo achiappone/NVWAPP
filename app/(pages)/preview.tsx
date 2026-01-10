@@ -1,6 +1,7 @@
 // app/preview.tsx
 import { PROCESSORS } from "@/constants/processors";
 import { GRID_COLORS } from "@/domain/gridColors";
+import { calculatePowerGrid } from "@/domain/powerGrid";
 import { assignCabinetsToPorts, assignCabinetsToPortsVertical, calculateSignalGrid } from "@/domain/signalGrid";
 import { calculateSystemGrid } from "@/domain/systemGrid";
 import { calculateMediaServerOutputs } from "@/domain/videoSourceCalculations";
@@ -21,6 +22,7 @@ import { buildInstallationGridFromHardware } from "../../pdf/utils/gridBuilder";
 import { buildScreenGridGeometry } from "../../pdf/utils/gridMath";
 import { useStore } from "../../store/StoreProvider";
 import { buildConfigExport } from "../../utils/buildConfigExport";
+import { PowerGridPreview } from "../components/powerGridPreview";
 
 
 const Preview = observer(() => {
@@ -254,7 +256,16 @@ const previewCabinets =
             cabinetsByOutput.get(outputIndex)!.push(cabIndex);
           });
 
-
+    // ─────────────────────────────────────────────
+// POWER GRID DATA (same as PDF)
+// ─────────────────────────────────────────────
+  const power = calculatePowerGrid({
+  width: project.hardware.width,
+  height: project.hardware.height,
+  application: project.hardware.application,
+  pixelPitch: project.hardware.pixelPitch,
+  inputVoltage: project.cables.voltageInput,
+});
          
   return (
     <ScrollView
@@ -288,6 +299,17 @@ const previewCabinets =
         </View>
       </Modal>
 
+      {/* Show preview data from stores; formatting uses definitions above, const LABELS */}
+        <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Project Info</Text>
+
+        {Object.entries(exportData.meta).map(([label, value]) => (
+          <View key={label} style={styles.row}>
+            <Text style={styles.label}>{LABELS[label] ?? label}</Text>
+            <Text style={styles.value}>{String(value)}</Text>
+          </View>
+        ))}
+      </View>
 
       <Text style={styles.sectionTitle}>Grid Preview (Scaled)</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator>
@@ -321,9 +343,45 @@ const previewCabinets =
         </Text>
         </View>
         ))}
-
         </View>
+      
       </ScrollView>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Hardware</Text>
+
+            {Object.entries(hardware).map(([label, value]) => (
+              <View key={label} style={styles.row}>
+                <Text style={styles.label}>{LABELS[label] ?? label}</Text>
+                <Text style={styles.value}>{String(value)}</Text>
+              </View>
+            ))}
+          </View>
+      
+      {/*Power Grid Preview*/}
+      {power && (
+        <>
+          <Text style={styles.sectionTitle}>Power Distribution</Text>
+          <PowerGridPreview grid={power.powerGrid} />
+        </>
+      )}
+
+
+       //legend
+       {/*<View style={styles.legend}>
+          {powerLines.map((line) => (
+            <View key={line.lineId} style={styles.legendRow}>
+              <View
+                style={[
+                  styles.legendSwatch,
+                  { backgroundColor: line.color },
+                ]}
+              />
+              <Text>{line.lineId}</Text>
+            </View>
+          ))}
+        </View>*/}
+ 
+
 
       {/*Signal Grid Preview*/}
         
@@ -498,29 +556,6 @@ const previewCabinets =
           </View>
         )}
 
-      {/* Show preview data from stores; formatting uses definitions above, const LABELS */}
-      <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Project Info</Text>
-
-      {Object.entries(exportData.meta).map(([label, value]) => (
-        <View key={label} style={styles.row}>
-          <Text style={styles.label}>{LABELS[label] ?? label}</Text>
-          <Text style={styles.value}>{String(value)}</Text>
-        </View>
-      ))}
-    </View>
-
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Hardware</Text>
-
-      {Object.entries(hardware).map(([label, value]) => (
-        <View key={label} style={styles.row}>
-          <Text style={styles.label}>{LABELS[label] ?? label}</Text>
-          <Text style={styles.value}>{String(value)}</Text>
-        </View>
-      ))}
-    </View>
-
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Control</Text>
 
@@ -614,7 +649,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#555",
     alignSelf: "flex-start",
-    marginBottom: 20,
+    marginBottom: 10,
   },
   cabinetLabel: {
     color: "#fff",
