@@ -4,14 +4,14 @@ export const pdfStyles = {
     fontSize: 18,
 
     color: "#000000",
-    margin: [0, 0, 0, 6],
+    margin: [0, 10, 0, 0],  //[] top, right, bottom, left
   },
 
   subSectionHeader: {
     fontSize: 16,
     bold: true,
     color: "#666666",
-    margin: [0, 10, 0, 6],
+    margin: [4, 10, 0, 4],  //[] top, right, bottom, left
   },
 
   tableLabel: {
@@ -22,6 +22,12 @@ export const pdfStyles = {
   tableValue: {
     fontSize: 11,
     color: "#000000",
+    margin: [0, 10, 0, 6],  //[] top, right, bottom, left
+  },
+    specValue: {
+    fontSize: 11,
+    color: "#000000",
+    margin: [2, 0, 4, 0],  //[] top, right, bottom, left
   },
 
   tableSubValue: {
