@@ -1,6 +1,5 @@
 // app/preview.tsx
 import { PROCESSORS } from "@/constants/processors";
-import { GRID_COLORS } from "@/domain/gridColors";
 import { calculatePowerGrid } from "@/domain/powerGrid";
 import { assignCabinetsToPorts, assignCabinetsToPortsVertical, calculateSignalGrid } from "@/domain/signalGrid";
 import { calculateSystemGrid } from "@/domain/systemGrid";
@@ -23,7 +22,7 @@ import { buildScreenGridGeometry } from "../../pdf/utils/gridMath";
 import { useStore } from "../../store/StoreProvider";
 import { buildConfigExport } from "../../utils/buildConfigExport";
 import { PowerGridPreview } from "../components/powerGridPreview";
-
+import { SignalGridPreview } from "../components/signalGridPreview";
 
 const Preview = observer(() => {
   const store = useStore();
@@ -33,16 +32,35 @@ const Preview = observer(() => {
     return null;
   }
 
-  const exportData = buildConfigExport(project);
-  console.log(exportData.project.screens[0].cables);
-
   const [isExporting, setIsExporting] = React.useState(false);
 
   // Build normalized export data
   const hardware = project.hardware;
-    if (!hardware) {
-      return null;
-    }
+if (!hardware) return null;
+
+const isExportable =
+  (hardware.pixelPitch ?? 0) > 0 &&
+  (hardware.width ?? 0) > 0 &&
+  (hardware.height ?? 0) > 0;
+
+if (!isExportable) {
+  return (
+    <ScrollView style={styles.container}>
+      <Text style={styles.title}>Preview</Text>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Incomplete Configuration</Text>
+        <Text style={styles.value}>
+          Please set Pixel Pitch, Width, and Height before preview/export.
+        </Text>
+      </View>
+    </ScrollView>
+  );
+}
+
+// ✅ Only call export once valid
+const exportData = buildConfigExport(project);
+
       
   const application = hardware.application;
   // Build physical grid definition from product rules
@@ -56,7 +74,9 @@ const Preview = observer(() => {
         // Give React one frame to render the overlay
         await new Promise(resolve => setTimeout(resolve, 50));
 
-        await exportConfigPdf(exportData);
+        const latestExportData = buildConfigExport(project);
+        await exportConfigPdf(latestExportData);
+
       } catch (err) {
         console.error("Export failed", err);
       } finally {
@@ -147,11 +167,11 @@ console.log(
   const signalGridWidthPx =
   geometry.totalWidthMm * SCALE;
 
-const signalGridHeightPx =
+  const signalGridHeightPx =
   geometry.totalHeightMm * SCALE;
 
   // Limit preview rendering for performance
-const MAX_PREVIEW_CABINETS = 300;
+  const MAX_PREVIEW_CABINETS = 300;
 
 const previewCabinets =
   geometry.cabinets.length > MAX_PREVIEW_CABINETS
@@ -257,8 +277,8 @@ const previewCabinets =
           });
 
     // ─────────────────────────────────────────────
-// POWER GRID DATA (same as PDF)
-// ─────────────────────────────────────────────
+    // POWER GRID DATA (same as PDF)
+    // ─────────────────────────────────────────────
   const power = calculatePowerGrid({
   width: project.hardware.width,
   height: project.hardware.height,
@@ -365,102 +385,18 @@ const previewCabinets =
         </>
       )}
 
-
-       //legend
-       {/*<View style={styles.legend}>
-          {powerLines.map((line) => (
-            <View key={line.lineId} style={styles.legendRow}>
-              <View
-                style={[
-                  styles.legendSwatch,
-                  { backgroundColor: line.color },
-                ]}
-              />
-              <Text>{line.lineId}</Text>
-            </View>
-          ))}
-        </View>*/}
- 
-
-
       {/*Signal Grid Preview*/}
         
-      {signalGrid && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Signal Distribution</Text>
+          <SignalGridPreview
+            cabinets={previewCabinets}
+            cabinetPortMap={cabinetPortMap}
+            scale={SCALE}
+          />
 
-          <View style={styles.row}>
-            <Text style={styles.label}>Ports Used:</Text>
-            <Text style={styles.value}>{signalGrid.portsUsed}</Text>
-          </View>
-
-          {signalGrid.cabinetsPerPort.map((count, index) => (
-            <View key={index} style={styles.row}>
-              <Text style={styles.label}>Port {index + 1}:</Text>
-              <Text style={styles.value}>{count} cabinets</Text>
-            </View>
-          ))}
-        
-
-          <Text style={styles.sectionTitle2}>Signal Grid</Text>
-          {signalCapacityError && (
-            <View style={styles.row}>
-              <Text style={[styles.label, { color: "red" }]}>
-                Signal Capacity:
-              </Text>
-              <Text style={[styles.value, { color: "red" }]}>
-                Ports required exceed available ports
-              </Text>
-            </View>
-          )}
           
-          <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator
-              contentContainerStyle={{
-                alignItems: "flex-start",
-              }}
-            >
-              <View
-                style={{
-                  width: signalGridWidthPx,
-                  height: signalGridHeightPx,
-                  position: "relative",
-                  marginBottom: 24,
-                  marginTop: 15,
-                }}
-              >
-          {previewCabinets.map((cab, index) => {
-            const portIndex = cabinetPortMap[index] ?? 0;
-            const color =
-              GRID_COLORS[portIndex % GRID_COLORS.length];
+        </View>
 
-            return (
-              <View
-                key={`${cab.row}-${cab.col}`}
-                style={{
-                  position: "absolute",
-                  left: cab.x * SCALE,
-                  top: cab.y * SCALE,
-                  width: cab.width * SCALE,
-                  height: cab.height * SCALE,
-                  borderWidth: 1,
-                  borderColor: color,
-                  backgroundColor: `${color}33`,
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <Text style={styles.cabinetLabel}>
-                  P{portIndex + 1}
-                </Text>
-              </View>
-            );
-          })}
-            </View>
-            </ScrollView>
-        </View> 
-      )}
         {/* Show System Distribution */}
         {systemGrid && (
           <View style={styles.section}>
@@ -836,5 +772,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 6,
+  },
+  headerRow: {
+    flexDirection: "row",
+    backgroundColor: "#333",
+    height: 30,
+  },
+  headerCell: {
+    width: 60,
+    //height: 50,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 0.5,
+    borderColor: "#a2f938",
+  },
+  headerText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#a2f938",
   },
 });

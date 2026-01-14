@@ -16,6 +16,16 @@ export function buildConfigExport(project: ProjectInstance): ExportDocument {
   const control = snapshot.control;
   const cables = snapshot.cables;
 
+  // 🚫 PREVIEW / INCOMPLETE PROJECT GUARD
+  if (
+    snapshot.hardware.pixelPitch <= 0 ||
+    snapshot.hardware.width <= 0 ||
+    snapshot.hardware.height <= 0
+  ) {
+    throw new Error("Project is incomplete and cannot be exported yet.");
+  }
+
+
   
   const panelSpec = resolvePanelModel({
     application: hardware.application,

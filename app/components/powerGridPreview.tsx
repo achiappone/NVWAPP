@@ -47,7 +47,9 @@ export function PowerGridPreview({
       </View>
     </ScrollView>
   );
-}
+};
+
+export default PowerGridPreview;
 
 const styles = StyleSheet.create({
   grid: {
