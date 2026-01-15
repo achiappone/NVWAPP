@@ -8,13 +8,13 @@ import { calculateA10sProControlLoad } from "@/utils/control/a10sProCapacity";
 import { observer } from "mobx-react-lite";
 import React from "react";
 import {
-  ActivityIndicator,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { exportConfigPdf } from "../../pdf/buildPdf";
 import { buildInstallationGridFromHardware } from "../../pdf/utils/gridBuilder";
@@ -24,7 +24,7 @@ import { buildConfigExport } from "../../utils/buildConfigExport";
 import { PowerGridPreview } from "../components/powerGridPreview";
 import { SignalGridPreview } from "../components/signalGridPreview";
 
-const Preview = observer(() => {
+const CalculatedPreview = observer(() => {
   const store = useStore();
   const project = store.activeProject;
 
@@ -566,7 +566,7 @@ const previewCabinets =
   );
 });
 
-export default Preview;
+export default CalculatedPreview;
 
 const styles = StyleSheet.create({
   container: {
@@ -801,3 +801,4 @@ const styles = StyleSheet.create({
     color: "#a2f938",
   },
 });
+

@@ -20,11 +20,13 @@ import {
 
 const workflow = [
   "/launch",
+  "/calculator",
   "/home",
   "/hardware",
   "/control",
   "/cables",
-  "/preview"
+  "/preview",
+  "/preview/calculated",
 ];
 
 const BottomNavWithProgress = () => {
@@ -41,6 +43,7 @@ const BottomNavWithProgress = () => {
   const isLast = currentIndex === workflow.length - 1;
   const isPreview = pathname === "/preview";
   const isLaunch = pathname === "/launch";
+  const isCalculatedPreview = pathname === "/calculatedPreview";
 
   const progress = currentIndex / (workflow.length - 1);
 
