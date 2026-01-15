@@ -14,10 +14,12 @@ import {
   BackIcon,
   EditIcon,
   HomeIcon,
+  LaunchIcon,
   NextIcon
 } from "../../assets/icons/svgIcons";
 
 const workflow = [
+  "/launch",
   "/home",
   "/hardware",
   "/control",
@@ -38,6 +40,7 @@ const BottomNavWithProgress = () => {
   const isHome = currentIndex === 0;
   const isLast = currentIndex === workflow.length - 1;
   const isPreview = pathname === "/preview";
+  const isLaunch = pathname === "/launch";
 
   const progress = currentIndex / (workflow.length - 1);
 
@@ -54,6 +57,8 @@ const BottomNavWithProgress = () => {
   };
 
   const handleHome = () => router.push("/home");
+
+  const handleLaunch = () => router.push("/launch");
 
   return (
     <>
@@ -74,7 +79,7 @@ const BottomNavWithProgress = () => {
         <View style={styles.slot}>
           <TouchableOpacity onPress={handleHome} style={styles.navButton}>
             <HomeIcon />
-            <Text style={styles.label}>Home</Text>
+            <Text style={styles.label}>Build</Text>
           </TouchableOpacity>
         </View>
 
@@ -100,6 +105,16 @@ const BottomNavWithProgress = () => {
             >
               <EditIcon />
               <Text style={styles.label}>Edit</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* SLOT 5 — LAUNCH */}
+        <View style={styles.slot}>
+          {!isLaunch && (
+            <TouchableOpacity onPress={handleLaunch} style={styles.navButton}>
+              <LaunchIcon />
+              <Text style={styles.label}>Home</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -182,7 +197,7 @@ const styles = StyleSheet.create({
   wrapper: {
     backgroundColor: "#101010",
     paddingTop: 10,
-    paddingBottom: 30,
+    paddingBottom: 20,
     borderTopWidth: 1,
     borderTopColor: "#222"
   },

@@ -35,6 +35,40 @@ export const NextIcon = () => (
   </Svg>
 );
 
+export const LaunchIcon = () => (
+  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+    {/* Background circle */}
+    <Path
+      d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"
+      fill="white"
+      fillOpacity={0.1}
+    />
+
+    {/* Top line */}
+    <Path
+      d="M8 9H16"
+      stroke="white"
+      strokeWidth={2}
+      strokeLinecap="round"
+    />
+
+    {/* Middle line */}
+    <Path
+      d="M8 12H16"
+      stroke="white"
+      strokeWidth={2}
+      strokeLinecap="round"
+    />
+
+    {/* Bottom line */}
+    <Path
+      d="M8 15H16"
+      stroke="white"
+      strokeWidth={2}
+      strokeLinecap="round"
+    />
+  </Svg>
+);
 
 export const HomeIcon = ({ color = 'white' }: {color?: String }) => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
