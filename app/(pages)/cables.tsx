@@ -315,8 +315,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000",
-    padding: 20,
-    paddingTop: 50,
+    padding: 15,
+    paddingTop: 30,
   },
   title: {
     color: "#fff",

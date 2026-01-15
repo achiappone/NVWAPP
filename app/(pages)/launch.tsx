@@ -1,5 +1,5 @@
 
-// app/%28pages%29/home.tsx
+// app/%28pages%29/launch.tsx
 
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
@@ -8,12 +8,12 @@ import * as Sharing from "expo-sharing";
 import { observer } from "mobx-react-lite";
 import { getSnapshot } from "mobx-state-tree";
 import React, { useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useStore } from "../../store/StoreProvider";
 
 const isWeb = Platform.OS === "web";
 
-const Home = observer(() => {
+const Launch = observer(() => {
   
   const store = useStore();
   const router = useRouter();
@@ -125,177 +125,36 @@ const Home = observer(() => {
         style={{ width: "100%" }}
         contentContainerStyle={ styles.scrollContent }
       >
-      <Text style={styles.title}>Home</Text>
+      <Text style={styles.title}>Launch</Text>
 
 
       {/* Active Project */}
       {project && (
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>Active Project:</Text>
-          <Text style={styles.cardTitle}>"{project.name}"</Text>
+          <Text style={styles.cardLabel}>Start Here:</Text>
 
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={() => router.push("/hardware")}
+            onPress={() => router.push("/(pages)/home")}
           >
-            <Text style={styles.primaryButtonText}>Continue Editing</Text>
+            <Text style={styles.primaryButtonText}>Calculator</Text>
           </TouchableOpacity>
-        </View>
-      )}
 
-      {/* New Project */}
-      <View style={styles.card}>
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={() => {
-            store.createProject("New Project");
-            router.push("/hardware");
-          }}
-        >
-          <Text style={styles.secondaryButtonText}>+ New Project</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.secondaryButton, { marginTop: 12 }]}
-          onPress={exportAllProjects}
-        >
-          <Text style={styles.secondaryButtonText}>
-            Export All Projects
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.secondaryButton, { marginTop: 12 }]}
-          onPress={importProjects}
-        >
-          <Text style={styles.secondaryButtonText}>
-            Import All Projects
-          </Text>
-          
-        </TouchableOpacity>
-      </View>
-
-      {/* Project List */}
-      <View style={{ marginTop: 30 }}>
-        <Text style={styles.sectionTitle}>Projects (press + hold to rename or delete)</Text>
-
-        {store.projectList.map((p) => (
-        <View key={p.id} style={styles.projectRow}>
-          {/* Project name */}
           <TouchableOpacity
-            style={styles.projectNameContainer}
-            onPress={() => {
-              store.setActiveProject(p.id);
-              router.push("/hardware");
-            }}
-            onLongPress={() => {
-              setRenameProjectId(p.id);
-              setProjectNameDraft(p.name);
-            }}
+            style={styles.primaryButton}
+            onPress={() => router.push("/(pages)/home")}
           >
-            <Text style={styles.projectName}>{p.name}</Text>
+            <Text style={styles.primaryButtonText}>System Builder</Text>
           </TouchableOpacity>
-
-          {/* Actions */}
-          <View style={styles.projectActions}>
-            <TouchableOpacity
-              style={styles.reviewButton}
-              onPress={() => {
-                store.setActiveProject(p.id);
-                router.push("/preview");
-              }}
-            >
-              <Text style={styles.reviewButtonText}>Review</Text>
-            </TouchableOpacity>
-          </View>
         </View>
-          ))}
-
-
-                {renameProjectId && (
-          <View style={styles.renameOverlay}>
-            <View style={styles.renameModal}>
-              <Text style={styles.renameTitle}>Rename Project</Text>
-
-              <TextInput
-                value={projectNameDraft}
-                onChangeText={setProjectNameDraft}
-                placeholder="Project name"
-                placeholderTextColor="#666"
-                style={styles.renameInput}
-                autoFocus
-      />
-
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={() => setRenameProjectId(null)}
-        >
-          <Text style={styles.secondaryButtonText}>Cancel</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => {
-            store.renameProject(renameProjectId, projectNameDraft.trim() || "New Project");
-            setRenameProjectId(null);
-          }}
-        >
-          <Text style={styles.primaryButtonText}>Save</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => {
-            setConfirmDeleteId(renameProjectId);
-          }}
-        >
-          <Text style={styles.deleteButtonText}>Delete Project</Text>
-        </TouchableOpacity>
-        
-        {/* Delete button modal */}
-        {confirmDeleteId && (
-          <View style={styles.renameOverlay}>
-            <View style={styles.renameModal}>
-              <Text style={styles.renameTitle}>Delete Project?</Text>
-
-              <Text style={{ color: "#aaa", marginBottom: 20 }}>
-                This action cannot be undone.
-              </Text>
-
-              <View style={{ flexDirection: "row", gap: 10 }}>
-                <TouchableOpacity
-                  style={styles.secondaryButton}
-                  onPress={() => setConfirmDeleteId(null)}
-                >
-                  <Text style={styles.secondaryButtonText}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.deleteConfirmButton}
-                  onPress={() => {
-                    store.deleteProject(confirmDeleteId);
-                    setConfirmDeleteId(null);
-                    setRenameProjectId(null);
-                  }}
-                >
-                  <Text style={styles.deleteConfirmButtonText}>Delete</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-              )}
-          </View>
-        </View>
-      </View>
       )}
-        </View>
+
       </ScrollView>
       </View>
     );
 });
 
-export default Home;
+export default Launch;
 
 const styles = StyleSheet.create({
   container: {
@@ -313,7 +172,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#262525ff",
     borderRadius: 15,
     padding: 16,
-    marginBottom: 10,
   },
   cardLabel: {
     color: "#aaa",
@@ -332,6 +190,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     minWidth: 50,
     alignItems: "center",
+    marginBottom: 20,
   },
   primaryButtonText: {
     color: "#000",
