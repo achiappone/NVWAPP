@@ -135,7 +135,7 @@ const Launch = observer(() => {
 
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={() => router.push("/(pages)/home")}
+            onPress={() => router.push("/calculator")}
           >
             <Text style={styles.primaryButtonText}>Calculator</Text>
           </TouchableOpacity>
